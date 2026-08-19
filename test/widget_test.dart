@@ -39,13 +39,13 @@ void main() {
 
     // Scroll to button and tap
     await tester.ensureVisible(find.text('COMMISSION CORPORATION'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('COMMISSION CORPORATION'));
 
     await tester.runAsync(() async {
       await Future<void>.delayed(const Duration(milliseconds: 500));
     });
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
     // Verify we arrived at Corp HQ dashboard
     expect(find.text('OPERATIONS READINESS'), findsOneWidget);

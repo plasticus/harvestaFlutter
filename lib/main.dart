@@ -5,6 +5,7 @@ import 'providers/database_provider.dart';
 import 'providers/game_state_provider.dart';
 import 'screens/new_game_screen.dart';
 import 'screens/corp_hq_screen.dart';
+import 'widgets/living_cosmos_background.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +22,7 @@ class HarVestaApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF080C10),
+        scaffoldBackgroundColor: Colors.transparent,
         colorScheme: const ColorScheme.dark(
           primary: Color(0xFF00D4FF), // harVesta Cyan
           secondary: Color(0xFFFFB740), // harVesta Amber
@@ -32,7 +33,7 @@ class HarVestaApp extends StatelessWidget {
           onSurface: Color(0xFFC8DFF0),
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF060A10),
+          backgroundColor: Color(0xDD060A10),
           elevation: 0,
           centerTitle: true,
           titleTextStyle: TextStyle(
@@ -43,7 +44,7 @@ class HarVestaApp extends StatelessWidget {
           ),
         ),
         cardTheme: const CardThemeData(
-          color: Color(0xFF0D1520),
+          color: Color(0xE60D1520),
           shape: RoundedRectangleBorder(
             side: BorderSide(color: Color(0xFF1A3050)),
             borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -54,6 +55,11 @@ class HarVestaApp extends StatelessWidget {
           bodyLarge: TextStyle(color: Color(0xFFC8DFF0)),
         ),
       ),
+      builder: (context, child) {
+        return LivingCosmosBackground(
+          child: child ?? const SizedBox(),
+        );
+      },
       home: const RootGateScreen(),
     );
   }
