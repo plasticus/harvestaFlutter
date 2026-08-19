@@ -609,7 +609,7 @@ class _CorpHqScreenState extends ConsumerState<CorpHqScreen> {
         final m = modules[idx];
         return InkWell(
           onTap: () {
-            if (m.title == 'Fleet Roster') {
+            if (m.title == 'Fleet & Vessels') {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const FleetScreen(initialTabIndex: 0)),
               );
