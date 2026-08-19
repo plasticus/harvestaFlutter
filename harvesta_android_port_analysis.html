@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>harVesta — Android Port Feasibility Analysis</title>
+  <style>
+    :root {
+      --bg: #080c10;
+      --bg2: #0d1520;
+      --bg3: #0f1e30;
+      --cyan: #00d4ff;
+      --amber: #ffb740;
+      --green: #39ff98;
+      --red: #ff4d6a;
+      --orange: #ff8a2b;
+      --purple: #c084fc;
+      --muted: #5a7a9a;
+      --text: #c8dff0;
+      --border: #1a3050;
+      --card-bg: rgba(13,21,32,0.85);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, #060a10 0%, #0a1828 60%, #0d2040 100%);
+      border-bottom: 1px solid var(--cyan);
+      padding: 48px 40px 36px;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 80% 50%, rgba(0,212,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    header .eyebrow {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--cyan);
+      opacity: 0.7;
+      margin-bottom: 10px;
+    }
+    header h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+    header h1 span { color: var(--cyan); }
+    header .subtitle {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 640px;
+    }
+    header .meta {
+      margin-top: 20px;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .meta-pill {
+      background: rgba(0,212,255,0.08);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: var(--cyan);
+    }
+
+    /* ── Layout ──────────────────────────────────────────────────── */
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 40px 32px 80px; }
+
+    /* ── TL;DR Verdict box ───────────────────────────────────────── */
+    .verdict {
+      background: linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(255,183,64,0.04) 100%);
+      border: 1px solid rgba(0,212,255,0.3);
+      border-left: 4px solid var(--cyan);
+      border-radius: 8px;
+      padding: 28px 32px;
+      margin-bottom: 48px;
+      position: relative;
+    }
+    .verdict .verdict-label {
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .verdict h2 { font-size: 1.35rem; color: #fff; margin-bottom: 12px; }
+    .verdict p { color: var(--text); }
+    .verdict .score {
+      position: absolute;
+      top: 24px; right: 28px;
+      font-family: 'Courier New', monospace;
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: var(--amber);
+      line-height: 1;
+    }
+    .verdict .score span { display: block; font-size: 11px; color: var(--muted); text-align: center; margin-top: 2px; }
+
+    /* ── Section headers ─────────────────────────────────────────── */
+    .section { margin-bottom: 52px; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-num {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: var(--cyan);
+      background: rgba(0,212,255,0.1);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 4px;
+      padding: 2px 8px;
+      flex-shrink: 0;
+    }
+    .section-header h2 { font-size: 1.3rem; color: #fff; }
+
+    /* ── Cards grid ──────────────────────────────────────────────── */
+    .cards { display: grid; gap: 16px; }
+    .cards.cols-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .cards.cols-3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 22px;
+    }
+    .card.good  { border-top: 3px solid var(--green); }
+    .card.warn  { border-top: 3px solid var(--amber); }
+    .card.bad   { border-top: 3px solid var(--red); }
+    .card.info  { border-top: 3px solid var(--cyan); }
+    .card.purple { border-top: 3px solid var(--purple); }
+
+    .card h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card p, .card li { font-size: 0.875rem; color: var(--text); }
+    .card ul { padding-left: 16px; }
+    .card ul li { margin-bottom: 4px; }
+
+    .icon { font-size: 1.1em; }
+
+    /* ── Effort table ────────────────────────────────────────────── */
+    .effort-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    .effort-table th {
+      background: rgba(0,212,255,0.08);
+      color: var(--cyan);
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .effort-table td {
+      padding: 11px 14px;
+      border-bottom: 1px solid rgba(26,48,80,0.6);
+      color: var(--text);
+      vertical-align: top;
+    }
+    .effort-table tr:last-child td { border-bottom: none; }
+    .effort-table tr:hover td { background: rgba(0,212,255,0.03); }
+
+    .effort-table .system-name { color: #fff; font-weight: 500; }
+    .effort-table .complexity-badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-low    { background: rgba(57,255,152,0.12); color: var(--green); border: 1px solid rgba(57,255,152,0.25); }
+    .badge-med    { background: rgba(255,183,64,0.12); color: var(--amber); border: 1px solid rgba(255,183,64,0.25); }
+    .badge-high   { background: rgba(255,138,43,0.12); color: var(--orange); border: 1px solid rgba(255,138,43,0.25); }
+    .badge-vhigh  { background: rgba(255,77,106,0.12); color: var(--red);    border: 1px solid rgba(255,77,106,0.25); }
+
+    .effort-bar-wrap { display: flex; align-items: center; gap: 10px; }
+    .effort-bar {
+      flex: 1;
+      height: 6px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .effort-bar-fill { height: 100%; border-radius: 3px; }
+    .fill-1  { width: 10%; background: var(--green); }
+    .fill-2  { width: 25%; background: var(--green); }
+    .fill-3  { width: 40%; background: var(--amber); }
+    .fill-4  { width: 55%; background: var(--amber); }
+    .fill-5  { width: 70%; background: var(--orange); }
+    .fill-6  { width: 85%; background: var(--orange); }
+    .fill-7  { width: 95%; background: var(--red); }
+    .effort-weeks { font-family: 'Courier New', monospace; font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+    /* ── Stack comparison ────────────────────────────────────────── */
+    .stack-grid {
+      display: grid;
+      grid-template-columns: 1fr 48px 1fr;
+      gap: 0;
+      align-items: stretch;
+    }
+    .stack-col { padding: 4px 0; }
+    .stack-col h4 {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 10px 18px;
+      margin-bottom: 0;
+    }
+    .stack-col.web h4   { color: var(--muted); background: rgba(255,255,255,0.03); border-radius: 6px 6px 0 0; border: 1px solid var(--border); border-bottom: none; }
+    .stack-col.android h4 { color: var(--cyan); background: rgba(0,212,255,0.05); border-radius: 6px 6px 0 0; border: 1px solid rgba(0,212,255,0.25); border-bottom: none; }
+    .stack-arrow { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 1.2rem; margin-top: 42px; }
+
+    .stack-row {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 0;
+      font-size: 0.82rem;
+      border-bottom: 1px solid rgba(26,48,80,0.5);
+    }
+    .stack-row:last-child { border-bottom: none; }
+    .stack-row .layer {
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      padding: 9px 14px;
+      background: rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+    }
+    .stack-row .val { padding: 9px 14px; color: var(--text); }
+
+    .stack-col.web  .stack-rows { border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; }
+    .stack-col.android .stack-rows { border: 1px solid rgba(0,212,255,0.2); border-top: none; border-radius: 0 0 6px 6px; }
+    .stack-col.android .val { color: var(--cyan); }
+
+    /* ── Timeline bar ────────────────────────────────────────────── */
+    .timeline { display: flex; flex-direction: column; gap: 0; }
+    .timeline-row {
+      display: grid;
+      grid-template-columns: 180px 1fr 80px;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(26,48,80,0.4);
+    }
+    .timeline-row:last-child { border-bottom: none; }
+    .timeline-phase { font-size: 0.82rem; color: var(--text); }
+    .timeline-bar-wrap { position: relative; }
+    .timeline-bar-bg {
+      height: 22px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .timeline-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      padding-left: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      color: rgba(0,0,0,0.7);
+      font-weight: 700;
+    }
+    .timeline-est { font-family: 'Courier New', monospace; font-size: 12px; color: var(--muted); text-align: right; }
+
+    /* ── Info boxes ──────────────────────────────────────────────── */
+    .infobox {
+      background: rgba(0,212,255,0.04);
+      border: 1px solid rgba(0,212,255,0.15);
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-top: 16px;
+      font-size: 0.875rem;
+    }
+    .infobox.warn {
+      background: rgba(255,183,64,0.04);
+      border-color: rgba(255,183,64,0.2);
+    }
+    .infobox.danger {
+      background: rgba(255,77,106,0.04);
+      border-color: rgba(255,77,106,0.2);
+    }
+    .infobox strong { color: #fff; }
+
+    /* ── Approach comparison ─────────────────────────────────────── */
+    .approach-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+    .approach-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .approach-card .approach-header {
+      padding: 14px 18px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .approach-card.hybrid .approach-header  { background: rgba(255,183,64,0.1); color: var(--amber); }
+    .approach-card.native .approach-header  { background: rgba(0,212,255,0.1); color: var(--cyan); }
+    .approach-card.scratch .approach-header { background: rgba(192,132,252,0.1); color: var(--purple); }
+    .approach-card .approach-body { padding: 16px 18px; background: var(--card-bg); }
+    .approach-card .pro, .approach-card .con { font-size: 0.85rem; padding: 3px 0; }
+    .approach-card .pro { color: var(--green); }
+    .approach-card .pro::before { content: '✓ '; }
+    .approach-card .con { color: var(--red); }
+    .approach-card .con::before { content: '✗ '; }
+    .approach-card .approach-label {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 3px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+    }
+    .approach-card.hybrid .approach-label  { background: rgba(255,183,64,0.15); color: var(--amber); }
+    .approach-card.native .approach-label  { background: rgba(0,212,255,0.15); color: var(--cyan); }
+    .approach-card.scratch .approach-label { background: rgba(192,132,252,0.15); color: var(--purple); }
+
+    /* ── Footer ──────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 32px;
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    footer p { font-size: 0.8rem; color: var(--muted); font-family: 'Courier New', monospace; }
+
+    /* ── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 700px) {
+      header { padding: 32px 20px 24px; }
+      .page-wrap { padding: 28px 16px 60px; }
+      header h1 { font-size: 1.7rem; }
+      .verdict .score { position: static; margin-top: 16px; }
+      .stack-grid { grid-template-columns: 1fr; }
+      .stack-arrow { display: none; }
+      .timeline-row { grid-template-columns: 1fr; }
+      .timeline-est { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ HEADER -->
+<header>
+  <div class="eyebrow">● Feasibility Report // Internal Document</div>
+  <h1>harVesta → <span>Android</span><br>Port Analysis</h1>
+  <p class="subtitle">Assessment of scope, effort, and approach for migrating the harVesta multiplayer web game to a single-player Android application.</p>
+  <div class="meta">
+    <span class="meta-pill">📅 August 2026</span>
+    <span class="meta-pill">🌐 Source: PHP 8.4 + MariaDB</span>
+    <span class="meta-pill">📱 Target: Android (Kotlin / Jetpack Compose)</span>
+    <span class="meta-pill">🎮 Genre: Turn-based Corp Strategy</span>
+  </div>
+</header>
+
+<div class="page-wrap">
+
+  <!-- ═══════════════════════════ VERDICT -->
+  <div class="verdict">
+    <div class="score">7 / 10<span>Portability</span></div>
+    <div class="verdict-label">⬡ TL;DR Verdict</div>
+    <h2>Definitely doable — but it's a significant rewrite, not a port.</h2>
+    <p>
+      The good news: harVesta's <strong>gameplay loop is naturally single-player</strong>. The "multiplayer" is almost entirely a cosmetic shared leaderboard — the core game systems (mining, research, fleet, missions, combat) are per-corp and fully independent. Almost everything that actually matters to the player experience ports cleanly to a single-device Android game. The bad news: the entire <strong>tech stack is non-transferable</strong>. Raw PHP/MySQL has no path to Android. Every system will need to be rebuilt in Kotlin, with SQLite (Room) replacing the database, and every server-side render replaced with proper Android UI. There is no "easy" path here, but there is a <em>very clear</em> path, and the game design itself is a genuine asset — it's a solid, well-thought-out game.
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════ SECTION 1 — What The Game Is -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>What You're Actually Porting</h2>
+    </div>
+    <div class="cards cols-2">
+      <div class="card info">
+        <h3><span class="icon">🎮</span> The Game</h3>
+        <p>harVesta is a <strong>turn-based space corporate management and strategy game</strong> set in The Asteroid Belt. Players run a mining corporation — scanning asteroids, dispatching fleets, running missions, conducting research, training officers, and managing a ship fleet — all competing against AI rivals on a shared leaderboard.</p>
+      </div>
+      <div class="card info">
+        <h3><span class="icon">🔁</span> Core Loop Per Turn</h3>
+        <ul>
+          <li>Radar sweep → scan asteroids</li>
+          <li>Dispatch squadron → mine/salvage</li>
+          <li>Accept & run a mission contract</li>
+          <li>Progress research in a chosen discipline</li>
+          <li>Train cadets at the academy</li>
+          <li>Trade resources at the market</li>
+          <li>Advance the turn (AI corps take their moves)</li>
+        </ul>
+      </div>
+      <div class="card info">
+        <h3><span class="icon">⚔️</span> Combat</h3>
+        <p>Full broadside naval-style combat with 6 subsystems per ship (Engines, Weapons, Maneuverability, Life Support, Cargo, Hull). Crew skills, ship quirks/personalities, morale cascades, tactical directives, and animated playback.</p>
+      </div>
+      <div class="card info">
+        <h3><span class="icon">👥</span> "Multiplayer" Reality Check</h3>
+        <p>The multiplayer element is a <strong>shared leaderboard and fleet directory</strong>. All actual gameplay — every action, every mission, every combat — is entirely isolated per player. Six AI corporations simulate competition. There is no direct player-vs-player, no trading between players, no messaging, no alliances. <strong>This is already essentially a single-player game.</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SECTION 2 — Tech Stack -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>Tech Stack: Then &amp; Now</h2>
+    </div>
+
+    <div class="stack-grid">
+      <div class="stack-col web">
+        <h4>Current Web Stack</h4>
+        <div class="stack-rows">
+          <div class="stack-row"><div class="layer">Language</div><div class="val">PHP 8.4 (procedural, no framework)</div></div>
+          <div class="stack-row"><div class="layer">Database</div><div class="val">MariaDB 11.4 via raw mysqli</div></div>
+          <div class="stack-row"><div class="layer">UI</div><div class="val">Server-rendered HTML + inline CSS</div></div>
+          <div class="stack-row"><div class="layer">JS</div><div class="val">jQuery + combat animation blob</div></div>
+          <div class="stack-row"><div class="layer">Auth</div><div class="val">PHP $_SESSION + bcrypt</div></div>
+          <div class="stack-row"><div class="layer">State</div><div class="val">MySQL tables + $_SESSION</div></div>
+          <div class="stack-row"><div class="layer">Server</div><div class="val">Apache shared hosting (Lithium)</div></div>
+          <div class="stack-row"><div class="layer">API</div><div class="val">None — no REST/GraphQL layer</div></div>
+          <div class="stack-row"><div class="layer">Build</div><div class="val">None (raw files, FTP deploy)</div></div>
+        </div>
+      </div>
+
+      <div class="stack-arrow">→</div>
+
+      <div class="stack-col android">
+        <h4>Target Android Stack</h4>
+        <div class="stack-rows">
+          <div class="stack-row"><div class="layer">Language</div><div class="val">Kotlin (primary) + Coroutines</div></div>
+          <div class="stack-row"><div class="layer">Database</div><div class="val">Room (SQLite) — 27 tables → local DB</div></div>
+          <div class="stack-row"><div class="layer">UI</div><div class="val">Jetpack Compose (declarative UI)</div></div>
+          <div class="stack-row"><div class="layer">JS</div><div class="val">Custom Compose combat animation</div></div>
+          <div class="stack-row"><div class="layer">Auth</div><div class="val">None needed (single-player save file)</div></div>
+          <div class="stack-row"><div class="layer">State</div><div class="val">Room DB + ViewModel + StateFlow</div></div>
+          <div class="stack-row"><div class="layer">Server</div><div class="val">None — fully offline</div></div>
+          <div class="stack-row"><div class="layer">API</div><div class="val">None needed — all local</div></div>
+          <div class="stack-row"><div class="layer">Build</div><div class="val">Gradle / Android Studio</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="infobox warn" style="margin-top: 20px;">
+      <strong>⚠ Zero Code Reuse:</strong> PHP and Kotlin are completely different languages with different paradigms. Not a single <code>.php</code> file can be compiled or run on Android. The codebase serves as a <em>design specification</em>, not source material to translate directly.
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SECTION 3 — System Effort Breakdown -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2>System-by-System Effort Breakdown</h2>
+    </div>
+
+    <table class="effort-table">
+      <thead>
+        <tr>
+          <th>System</th>
+          <th>Complexity</th>
+          <th>Portability</th>
+          <th>Android Equivalent</th>
+          <th>Est. Effort</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <tr>
+          <td class="system-name">Turn Engine</td>
+          <td><span class="complexity-badge badge-med">Medium</span></td>
+          <td>⭐⭐⭐⭐⭐ Trivial</td>
+          <td>A single integer in the Room DB. "Advance Turn" = Kotlin function that runs all the per-turn logic in sequence.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-2"></div></div>
+              <span class="effort-weeks">1–2 days</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">Turn Action Locks</td>
+          <td><span class="complexity-badge badge-low">Low</span></td>
+          <td>⭐⭐⭐⭐⭐ Trivial</td>
+          <td>A Room table or simple Set&lt;String&gt; in ViewModel state tracking completed actions per turn.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-1"></div></div>
+              <span class="effort-weeks">Few hours</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">Market &amp; Economy</td>
+          <td><span class="complexity-badge badge-med">Medium</span></td>
+          <td>⭐⭐⭐⭐⭐ Trivial</td>
+          <td>7 commodities with deterministic price variance (already uses crc32+turn — pure math, no server needed). Kotlin data classes + Room inventory table.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-2"></div></div>
+              <span class="effort-weeks">1–3 days</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">Research System</td>
+          <td><span class="complexity-badge badge-med">Medium</span></td>
+          <td>⭐⭐⭐⭐⭐ Trivial</td>
+          <td>10 disciplines, exponential formula (300 × 2^level). Pure math + a Room table per discipline. The formulas are clean and language-agnostic.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-2"></div></div>
+              <span class="effort-weeks">2–3 days</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">Asteroid Data &amp; Scanning</td>
+          <td><span class="complexity-badge badge-med">Medium</span></td>
+          <td>⭐⭐⭐⭐⭐ Trivial</td>
+          <td>~400 asteroids as a bundled JSON/Room seed. Scan = random selection logic. Volume depletion = update row. All straightforward.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-2"></div></div>
+              <span class="effort-weeks">2–4 days</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">Cadet Academy Pipeline</td>
+          <td><span class="complexity-badge badge-med">Medium</span></td>
+          <td>⭐⭐⭐⭐ Easy</td>
+          <td>20-candidate rotating roster, AI poaching mechanic (now simulated locally), training progress tracking. Logic translates cleanly; UI is the main work.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-3"></div></div>
+              <span class="effort-weeks">1–2 weeks</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">Financial Ledger &amp; Analytics</td>
+          <td><span class="complexity-badge badge-med">Medium</span></td>
+          <td>⭐⭐⭐⭐ Easy</td>
+          <td>Per-turn P&amp;L snapshots in Room. SVG charts → MPAndroidChart or Compose Canvas. The ledger logic is pure accounting math.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-3"></div></div>
+              <span class="effort-weeks">1–2 weeks</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">Station Buildings &amp; Upgrades</td>
+          <td><span class="complexity-badge badge-med">Medium</span></td>
+          <td>⭐⭐⭐⭐ Easy</td>
+          <td>5 building types × 5 levels. Entirely data-driven — could be a JSON config file. Room table for state. Straightforward to rebuild.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-3"></div></div>
+              <span class="effort-weeks">1 week</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">Ship Catalog &amp; Fleet Management</td>
+          <td><span class="complexity-badge badge-high">High</span></td>
+          <td>⭐⭐⭐ Moderate</td>
+          <td>38 ship models as a JSON data file. Squadron grouping, module hardpoints (Weapon/Armor/Bay slots), ship stats — all data modeling work. Complex UI (fleet screen is 1,027 lines of PHP). Significant screen design effort.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-5"></div></div>
+              <span class="effort-weeks">3–5 weeks</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">Ship Modules &amp; Loadout System</td>
+          <td><span class="complexity-badge badge-high">High</span></td>
+          <td>⭐⭐⭐ Moderate</td>
+          <td>26 purchasable module types across 3 categories × 3 tiers + Bay mods. Hardpoint slot enforcement. Full module equip/unequip UI. Data-driven but the UI is complex.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-4"></div></div>
+              <span class="effort-weeks">2–3 weeks</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">Ship Personalities / Quirks</td>
+          <td><span class="complexity-badge badge-low">Low</span></td>
+          <td>⭐⭐⭐⭐⭐ Trivial</td>
+          <td>Named quirks + severity levels as a Kotlin data class / JSON config. Applied as modifiers at combat start. This is a pure data + logic system, no server dependency whatsoever.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-2"></div></div>
+              <span class="effort-weeks">1–2 days</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">Crew / Officer System</td>
+          <td><span class="complexity-badge badge-high">High</span></td>
+          <td>⭐⭐⭐ Moderate</td>
+          <td>8 skills per officer, salary formula, role assignments (Captain/Pilot/FO/SO/Research), XP/level-up events. Logic is clean; the UI surface area is large.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-4"></div></div>
+              <span class="effort-weeks">2–3 weeks</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">Mission Board &amp; Contract System</td>
+          <td><span class="complexity-badge badge-med">Medium</span></td>
+          <td>⭐⭐⭐⭐ Easy</td>
+          <td>5 missions per turn, 9 types, procedurally generated from templates. Template-driven narrative generation → Kotlin string templates. Mission holder = Room table or local state.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-3"></div></div>
+              <span class="effort-weeks">1–2 weeks</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">Mission Runner (3-Waypoint System)</td>
+          <td><span class="complexity-badge badge-high">High</span></td>
+          <td>⭐⭐⭐ Moderate</td>
+          <td>Multi-step stateful flow — currently uses PHP $_SESSION to track waypoint step. On Android this becomes a simple ViewModel state machine / navigation graph. Conceptually clean to port, but meaningful screen work.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-4"></div></div>
+              <span class="effort-weeks">2–3 weeks</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">Sector Interruptors (10 encounter types)</td>
+          <td><span class="complexity-badge badge-high">High</span></td>
+          <td>⭐⭐⭐⭐ Easy</td>
+          <td>Branching narrative events with dice checks against squadron stats. The interruptors are already data-driven encounter scripts — essentially a mini visual novel engine. This maps naturally to Kotlin sealed classes or a JSON event definition format. The logic is portable; only the coupling to PHP globals needs to be cleaned up.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-5"></div></div>
+              <span class="effort-weeks">3–4 weeks</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">Combat Engine (Naval v2)</td>
+          <td><span class="complexity-badge badge-vhigh">Very High</span></td>
+          <td>⭐⭐ Hard</td>
+          <td>
+            The most complex system: 1,222 lines of PHP computing broadside combat with 6 subsystems per ship, crew skill modifiers, ship quirk penalties, morale cascades, tactical directives, animated playback via JavaScript. The <em>logic</em> translates to Kotlin — it's math + state. The <em>animation</em> currently runs as a JSON-driven JavaScript renderer, which must be completely rebuilt as a Compose Canvas animation or a LibGDX scene. This is the single hardest piece of the port.
+          </td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-7"></div></div>
+              <span class="effort-weeks">6–10 weeks</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">AI Corporation Engine</td>
+          <td><span class="complexity-badge badge-med">Medium</span></td>
+          <td>⭐⭐⭐ Moderate</td>
+          <td>6 AI corps at 3 difficulty tiers, each taking scan/mine/research/buy actions on turn advance. The decision matrix logic is around 400 lines of PHP. Rewriting in Kotlin is not conceptually hard, but it touches many systems (fleet DB, market, research tables). Needs to run fully offline, locally.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-5"></div></div>
+              <span class="effort-weeks">3–5 weeks</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">Database / Persistence Layer</td>
+          <td><span class="complexity-badge badge-high">High</span></td>
+          <td>⭐⭐ Hard</td>
+          <td>27 MySQL tables → Room (SQLite) entities + DAOs + migrations. The schema is well-defined (867KB SQL dump to reference). This is mechanical but voluminous work: every table needs a Kotlin @Entity class, every query becomes a @Query DAO method. Estimated 27 entities + ~80–100 DAO queries.</td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-6"></div></div>
+              <span class="effort-weeks">4–6 weeks</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="system-name">UI / Screens</td>
+          <td><span class="complexity-badge badge-vhigh">Very High</span></td>
+          <td>⭐ Hardest</td>
+          <td>
+            The current UI is 71 PHP files of mixed HTML/CSS. Rebuilding as Jetpack Compose screens is the largest body of work. Major screens: Corp HQ Dashboard, Station Hub, Fleet Manager, Shipyard, Mission Board, Mission Runner (Cockpit), Combat Screen, Market, Ledger, Codex, Cadet Academy, Research Lab. The glassmorphic dark aesthetic translates well to Android Material3 dark theme + custom theming — but every screen must be rebuilt from scratch in Compose.
+          </td>
+          <td>
+            <div class="effort-bar-wrap">
+              <div class="effort-bar"><div class="effort-bar-fill fill-7"></div></div>
+              <span class="effort-weeks">12–20 weeks</span>
+            </div>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══════════════════════════ SECTION 4 — What Works In Your Favor -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2>What Works In Your Favor</h2>
+    </div>
+    <div class="cards cols-2">
+      <div class="card good">
+        <h3><span class="icon">✅</span> The Gameplay Is Already Single-Player</h3>
+        <p>The shared leaderboard is the only genuinely multi-user feature. Every combat, mission, mining run, and research push is 100% isolated per player. You lose almost nothing meaningful by dropping the "multiplayer" label.</p>
+      </div>
+      <div class="card good">
+        <h3><span class="icon">✅</span> No Networking Architecture to Untangle</h3>
+        <p>There's no WebSocket server, no real-time sync, no message queue. The web server is just a database host. Replacing it with a local SQLite database is a clean, well-understood trade.</p>
+      </div>
+      <div class="card good">
+        <h3><span class="icon">✅</span> Data-Driven Design Throughout</h3>
+        <p>The ship catalog (38 models), module catalog (26 modules), 10 research disciplines, 7 commodities, asteroid list (~400 entries), and mission narrative templates are all table-driven. They migrate cleanly to JSON bundles or seeded Room databases — no logic needs to change.</p>
+      </div>
+      <div class="card good">
+        <h3><span class="icon">✅</span> The Turn System Is Trivially Simple</h3>
+        <p>A single integer in a database table. "Advance Turn" is a function call. No server clock, no concurrency, no race conditions. Perfect for a local game loop.</p>
+      </div>
+      <div class="card good">
+        <h3><span class="icon">✅</span> Market Pricing Is Deterministic & Serverless</h3>
+        <p>Commodity prices use <code>crc32(name) + gameTurn</code> — a pure math formula. Already cheat-resistant and server-independent. Works identically offline on Android.</p>
+      </div>
+      <div class="card good">
+        <h3><span class="icon">✅</span> The Aesthetic Translates to Android Beautifully</h3>
+        <p>The glassmorphic dark theme, neon cyan/amber palette, monospace HUD fonts, and CRT telemetry aesthetic are all at home on a dark-mode Android app. Material3 dynamic theming with custom color schemes can replicate this exactly.</p>
+      </div>
+      <div class="card good">
+        <h3><span class="icon">✅</span> Fully Offline Game</h3>
+        <p>No always-on server required. The game needs no internet connection to function. This means no backend maintenance cost, no server hosting fees, no latency concerns — just a local app.</p>
+      </div>
+      <div class="card good">
+        <h3><span class="icon">✅</span> The Schema Is Your Blueprint</h3>
+        <p>The 867KB SQL dump is a detailed, tested game state specification. Every Room @Entity class can be derived directly from it. You already know exactly what data the game needs — that's not a question you'll need to answer during development.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SECTION 5 — The Hard Parts -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2>The Hard Parts</h2>
+    </div>
+    <div class="cards cols-2">
+      <div class="card bad">
+        <h3><span class="icon">🚫</span> Zero Code Reuse</h3>
+        <p>PHP ≠ Kotlin. Not a line of existing code can be compiled or run on Android. Every class, every query, every function must be rebuilt. The existing codebase is a <em>reference implementation</em>, not a starting point.</p>
+      </div>
+      <div class="card bad">
+        <h3><span class="icon">🚫</span> Combat Animation Engine — Full Rebuild</h3>
+        <p>The combat engine outputs a JSON blob that a custom JavaScript renderer animates in the browser. On Android, this becomes a Jetpack Compose Canvas animation system or a LibGDX scene graph — a completely different rendering paradigm requiring significant original work.</p>
+      </div>
+      <div class="card bad">
+        <h3><span class="icon">🚫</span> 15+ Major Screens to Design &amp; Build</h3>
+        <p>Corp HQ, Station, Fleet, Shipyard, Mission Board, Mission Cockpit (3-waypoint), Interruptor encounters, Combat screen, Market, Ledger/Charts, Cadet Academy, Research Lab, Codex, Officer profiles... Each is a non-trivial Compose screen with its own state management.</p>
+      </div>
+      <div class="card bad">
+        <h3><span class="icon">🚫</span> PHP Session State → Android State Machine</h3>
+        <p>The 3-waypoint mission runner uses PHP <code>$_SESSION</code> to persist state across HTTP requests. On Android, this becomes a ViewModel-backed state machine with persistent Room storage — a conceptual simplification, but requires careful architecture planning upfront.</p>
+      </div>
+      <div class="card warn">
+        <h3><span class="icon">⚠️</span> Interruptors Are Deeply Coupled to Globals</h3>
+        <p>The interruptor system references <code>global $link, $_SESSION, $crew, $squadron, $CR, $numShips</code>. The logic is portable but needs to be refactored into a clean dependency-injected system before it can be ported. Consider this a refactor, not a direct translation.</p>
+      </div>
+      <div class="card warn">
+        <h3><span class="icon">⚠️</span> AI Corp Engine Needs All Subsystems First</h3>
+        <p>The AI runs scan, mine, research, build, and purchase actions. This means it touches almost every game system. The AI can only be built after the core systems are complete — it cannot be developed independently early on.</p>
+      </div>
+      <div class="card warn">
+        <h3><span class="icon">⚠️</span> No Existing Android Expertise Required but Implied</h3>
+        <p>Kotlin + Jetpack Compose + Room + ViewModel/StateFlow is a modern, coherent Android stack — but it has a real learning curve if the team primarily works in PHP. The paradigm shift (reactive UI, coroutines, dependency injection) is significant.</p>
+      </div>
+      <div class="card warn">
+        <h3><span class="icon">⚠️</span> Save File Management</h3>
+        <p>The web version has no concept of "save slots" — one account, one state. An Android game needs save slot management, potentially cloud save (Google Play Games), and backup/restore. These are new features with no web equivalent to reference.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SECTION 6 — Approach Options -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2>Three Possible Approaches</h2>
+    </div>
+    <div class="approach-grid">
+
+      <div class="approach-card hybrid">
+        <div class="approach-header">🌐 Option A — Hybrid WebView</div>
+        <div class="approach-body">
+          <p style="font-size:0.85rem;color:var(--text);margin-bottom:12px;">Wrap the existing PHP web game in an Android WebView, pointing to the hosted server.</p>
+          <div class="pro">Fastest to "ship" an Android app</div>
+          <div class="pro">Zero gameplay logic rewrite</div>
+          <div class="con">Requires a live server — not truly a local app</div>
+          <div class="con">PHP session handling in WebView is fragile</div>
+          <div class="con">Not single-player / offline — server still required</div>
+          <div class="con">Terrible UX on mobile (tiny PHP HTML is not touch-friendly)</div>
+          <div class="con">Play Store submission risk (Google disfavors WebView-only apps)</div>
+          <div class="con">Doesn't solve the "single-player" goal at all</div>
+          <span class="approach-label">⛔ Not Recommended</span>
+        </div>
+      </div>
+
+      <div class="approach-card native">
+        <div class="approach-header">📱 Option B — Native Android Port</div>
+        <div class="approach-body">
+          <p style="font-size:0.85rem;color:var(--text);margin-bottom:12px;">Full rewrite in Kotlin + Jetpack Compose + Room. The web game serves as a design spec and reference implementation.</p>
+          <div class="pro">Fully offline / single-player — no server dependency</div>
+          <div class="pro">Native performance and Android UX conventions</div>
+          <div class="pro">Play Store compliant — no WebView restrictions</div>
+          <div class="pro">Maintainable, modern codebase</div>
+          <div class="pro">The game design is already solid and validated</div>
+          <div class="con">Largest upfront effort — 6–12 months solo developer</div>
+          <div class="con">Zero code reuse from existing PHP</div>
+          <div class="con">Requires Android/Kotlin expertise</div>
+          <span class="approach-label">✅ Recommended</span>
+        </div>
+      </div>
+
+      <div class="approach-card scratch">
+        <div class="approach-header">🎮 Option C — Game Engine (Unity/Godot)</div>
+        <div class="approach-body">
+          <p style="font-size:0.85rem;color:var(--text);margin-bottom:12px;">Port to Unity (C#) or Godot (GDScript/C#) targeting Android, using the web game as the design document.</p>
+          <div class="pro">Built-in animation/rendering for combat sequences</div>
+          <div class="pro">Cross-platform (Android + iOS + PC) from one codebase</div>
+          <div class="pro">Rich asset pipeline for UI transitions and effects</div>
+          <div class="con">Largest paradigm shift from PHP — new engine, new language</div>
+          <div class="con">Turn-based strategy games don't need a real-time engine</div>
+          <div class="con">Unity licensing overhead (cost, terms)</div>
+          <div class="con">Overkill for a UI-heavy turn-based game</div>
+          <span class="approach-label">🤔 Consider If Cross-Platform Is a Goal</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SECTION 7 — Estimated Timeline -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2>Estimated Build Timeline (Option B — Native Android)</h2>
+    </div>
+    <p style="margin-bottom:20px;color:var(--muted);font-size:0.875rem;">Assumes a single experienced Kotlin/Android developer working full time. Adjust accordingly for part-time or team scenarios.</p>
+
+    <div class="timeline">
+      <div class="timeline-row">
+        <div class="timeline-phase"><strong>Phase 1</strong><br><span style="font-size:0.8rem;color:var(--muted)">Architecture & Data Layer</span></div>
+        <div class="timeline-bar-wrap">
+          <div class="timeline-bar-bg"><div class="timeline-bar-fill" style="width:15%;background:var(--cyan);">P1</div></div>
+        </div>
+        <div class="timeline-est">4–6 weeks</div>
+      </div>
+      <div class="timeline-row">
+        <div class="timeline-phase" style="font-size:0.8rem;color:var(--muted);padding-left:12px;">Room DB schema (27 entities), ViewModel architecture, navigation graph, data seeding (ships, modules, asteroids)</div>
+        <div></div><div></div>
+      </div>
+
+      <div class="timeline-row">
+        <div class="timeline-phase"><strong>Phase 2</strong><br><span style="font-size:0.8rem;color:var(--muted)">Core Game Loop Systems</span></div>
+        <div class="timeline-bar-wrap">
+          <div class="timeline-bar-bg"><div class="timeline-bar-fill" style="width:25%;background:var(--green);">P2</div></div>
+        </div>
+        <div class="timeline-est">6–8 weeks</div>
+      </div>
+      <div class="timeline-row">
+        <div class="timeline-phase" style="font-size:0.8rem;color:var(--muted);padding-left:12px;">Turn engine, action locks, scanning, mining, market, research, station buildings, basic UI screens for each</div>
+        <div></div><div></div>
+      </div>
+
+      <div class="timeline-row">
+        <div class="timeline-phase"><strong>Phase 3</strong><br><span style="font-size:0.8rem;color:var(--muted)">Fleet, Crew & Ships</span></div>
+        <div class="timeline-bar-wrap">
+          <div class="timeline-bar-bg"><div class="timeline-bar-fill" style="width:20%;background:var(--amber);">P3</div></div>
+        </div>
+        <div class="timeline-est">5–8 weeks</div>
+      </div>
+      <div class="timeline-row">
+        <div class="timeline-phase" style="font-size:0.8rem;color:var(--muted);padding-left:12px;">Fleet manager screen, squadron grouping, module loadout (hardpoint system), ship personalities/quirks, drydock repairs, officer system, cadet academy</div>
+        <div></div><div></div>
+      </div>
+
+      <div class="timeline-row">
+        <div class="timeline-phase"><strong>Phase 4</strong><br><span style="font-size:0.8rem;color:var(--muted)">Missions & Encounters</span></div>
+        <div class="timeline-bar-wrap">
+          <div class="timeline-bar-bg"><div class="timeline-bar-fill" style="width:20%;background:var(--orange);">P4</div></div>
+        </div>
+        <div class="timeline-est">5–7 weeks</div>
+      </div>
+      <div class="timeline-row">
+        <div class="timeline-phase" style="font-size:0.8rem;color:var(--muted);padding-left:12px;">Mission board, mission runner state machine, 3-waypoint cockpit UI, all 10 sector interruptors with dice resolution and branching narrative</div>
+        <div></div><div></div>
+      </div>
+
+      <div class="timeline-row">
+        <div class="timeline-phase"><strong>Phase 5</strong><br><span style="font-size:0.8rem;color:var(--muted)">Combat Engine</span></div>
+        <div class="timeline-bar-wrap">
+          <div class="timeline-bar-bg"><div class="timeline-bar-fill" style="width:25%;background:var(--red);">P5</div></div>
+        </div>
+        <div class="timeline-est">6–10 weeks</div>
+      </div>
+      <div class="timeline-row">
+        <div class="timeline-phase" style="font-size:0.8rem;color:var(--muted);padding-left:12px;">Port Naval Combat Engine v2 logic to Kotlin, build Compose Canvas/animation combat renderer, AAR screen, surrender flow, tactical directives</div>
+        <div></div><div></div>
+      </div>
+
+      <div class="timeline-row">
+        <div class="timeline-phase"><strong>Phase 6</strong><br><span style="font-size:0.8rem;color:var(--muted)">AI Corporations</span></div>
+        <div class="timeline-bar-wrap">
+          <div class="timeline-bar-bg"><div class="timeline-bar-fill" style="width:15%;background:var(--purple);">P6</div></div>
+        </div>
+        <div class="timeline-est">3–5 weeks</div>
+      </div>
+      <div class="timeline-row">
+        <div class="timeline-phase" style="font-size:0.8rem;color:var(--muted);padding-left:12px;">Port 6 AI corps × 3 difficulty tiers, decision matrix, AI turn execution on turn advance, local leaderboard</div>
+        <div></div><div></div>
+      </div>
+
+      <div class="timeline-row">
+        <div class="timeline-phase"><strong>Phase 7</strong><br><span style="font-size:0.8rem;color:var(--muted)">Polish, QA & Release</span></div>
+        <div class="timeline-bar-wrap">
+          <div class="timeline-bar-bg"><div class="timeline-bar-fill" style="width:15%;background:var(--muted);">P7</div></div>
+        </div>
+        <div class="timeline-est">4–6 weeks</div>
+      </div>
+      <div class="timeline-row">
+        <div class="timeline-phase" style="font-size:0.8rem;color:var(--muted);padding-left:12px;">Save slots, onboarding/tutorial, Play Store submission, crash reporting, balancing pass, ledger analytics screen</div>
+        <div></div><div></div>
+      </div>
+    </div>
+
+    <div class="infobox" style="margin-top:24px;">
+      <strong>Total Estimate: 33–50 weeks</strong> for a solo full-time experienced Android developer.<br>
+      That's roughly <strong>8–12 months</strong> of focused work to a shippable 1.0.<br><br>
+      A team of 2 (one backend/logic, one UI/Compose) could realistically compress this to <strong>5–7 months</strong> with parallel workstreams on Phases 2–4.
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SECTION 8 — What Gets Dropped / What Changes -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <h2>What Gets Dropped or Changed</h2>
+    </div>
+    <div class="cards cols-3">
+      <div class="card warn">
+        <h3><span class="icon">🗑️</span> Shared Leaderboard</h3>
+        <p>No longer a live cross-player board. Replaced with a local "Intel" screen showing your corp vs the AI corps only. Or optionally, a cloud leaderboard via Google Play Games Services.</p>
+      </div>
+      <div class="card warn">
+        <h3><span class="icon">🗑️</span> Email Verification / Account System</h3>
+        <p>No user accounts needed. The game runs locally. Save slots managed by the app. No SMTP, no bcrypt password hashing, no login screen.</p>
+      </div>
+      <div class="card warn">
+        <h3><span class="icon">🗑️</span> Admin Console</h3>
+        <p>The <code>login/admin.php</code> turn-advancement and moderation panel has no equivalent in a single-player app. Debug menus can replace it during development.</p>
+      </div>
+      <div class="card warn">
+        <h3><span class="icon">🗑️</span> Shared Fleet / Officer Directory</h3>
+        <p>Currently visible to all players. In single-player, the equivalent is an "Intel" screen showing AI corp fleet data (for competitive context). Same data, different framing.</p>
+      </div>
+      <div class="card good">
+        <h3><span class="icon">✨</span> Gains: Save Slots</h3>
+        <p>A web game has one persistent state per account. A single-player Android game gets multiple named save slots — a meaningful quality-of-life upgrade.</p>
+      </div>
+      <div class="card good">
+        <h3><span class="icon">✨</span> Gains: Offline Play</h3>
+        <p>Zero internet required. Play on a plane, on the subway, anywhere. The web version requires a server connection and isn't feasible offline.</p>
+      </div>
+      <div class="card good">
+        <h3><span class="icon">✨</span> Gains: Push Notifications</h3>
+        <p>Android enables notifications like "Your research is complete," "New mission contracts available," or "Your ships are repaired" — enhancing engagement in ways a web game cannot.</p>
+      </div>
+      <div class="card good">
+        <h3><span class="icon">✨</span> Gains: Touch-Native UI</h3>
+        <p>The current UI is desktop-first (collapsible sidebar, small form inputs, dense tables). A rebuilt Compose UI can be designed touch-first with proper gesture support, larger tap targets, and adaptive layouts.</p>
+      </div>
+      <div class="card good">
+        <h3><span class="icon">✨</span> Gains: Haptic Feedback</h3>
+        <p>Combat hits, mission outcomes, and level-up events can trigger haptic patterns — something impossible in a browser game.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SECTION 9 — Is It Starting Over? -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <h2>Is This Starting From Scratch?</h2>
+    </div>
+
+    <div class="cards cols-2">
+      <div class="card bad">
+        <h3><span class="icon">🔴</span> Technically: Yes</h3>
+        <p>From a code standpoint, you are starting from scratch. Zero PHP files transfer to Android. The entire tech stack — language, framework, database driver, rendering layer — is different. No toolchain is shared.</p>
+      </div>
+      <div class="card good">
+        <h3><span class="icon">🟢</span> Conceptually: Absolutely Not</h3>
+        <ul>
+          <li>The <strong>game design</strong> is done and proven</li>
+          <li>The <strong>data models</strong> are fully specified (27-table schema)</li>
+          <li>The <strong>game balance</strong> has been tuned (ship values, mission payouts, market prices, research curves)</li>
+          <li>The <strong>content</strong> exists: 38 ship models, 26 modules, 10 research disciplines, 400 asteroids, 10 interruptor scenarios, 9 mission types</li>
+          <li>The <strong>combat engine logic</strong> is documented in 1,200 lines of readable PHP — a complete reference implementation to port from</li>
+          <li>The <strong>AI behavior</strong> is specified and tested</li>
+          <li>The <strong>art direction</strong> (glassmorphic dark, neon cyan/amber) is established</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="infobox" style="margin-top:20px;">
+      <strong>The honest answer:</strong> You are not starting the <em>game</em> from scratch. You are starting the <em>codebase</em> from scratch. The web version serves as a complete, playable design spec. Every design decision has already been made and validated. You won't be asking "how should combat work?" or "how many ship models should there be?" — those answers are already in the PHP files. That's a massive head start compared to a ground-up greenfield project.
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SECTION 10 — Summary Scorecard -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">10</span>
+      <h2>Summary Scorecard</h2>
+    </div>
+
+    <table class="effort-table">
+      <thead>
+        <tr><th>Dimension</th><th>Assessment</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="system-name">Is it possible?</td>
+          <td style="color:var(--green);font-weight:600;">✅ Yes — unambiguously. No technical blockers exist.</td>
+        </tr>
+        <tr>
+          <td class="system-name">Is it starting over?</td>
+          <td style="color:var(--amber);">⚠️ Code: Yes. Design + content: No. The web game is a full reference spec.</td>
+        </tr>
+        <tr>
+          <td class="system-name">How much of the game logic transfers?</td>
+          <td style="color:var(--green);">~90% of the game systems have direct Android equivalents. The logic ports — only the PHP+HTML layer does not.</td>
+        </tr>
+        <tr>
+          <td class="system-name">What's the hardest part?</td>
+          <td style="color:var(--red);">Combat animation renderer (brand-new Compose Canvas work) + sheer volume of UI screens.</td>
+        </tr>
+        <tr>
+          <td class="system-name">What's the easiest part?</td>
+          <td style="color:var(--green);">Turn engine, market pricing, research system, ship/module data catalog — all pure logic/data, trivially portable.</td>
+        </tr>
+        <tr>
+          <td class="system-name">Does the multiplayer loss hurt?</td>
+          <td style="color:var(--green);">Barely. The game was already functionally single-player. You gain offline play and lose a cosmetic leaderboard.</td>
+        </tr>
+        <tr>
+          <td class="system-name">Realistic solo effort</td>
+          <td style="color:var(--amber);">8–12 months full-time for an experienced Android/Kotlin developer to a shippable 1.0.</td>
+        </tr>
+        <tr>
+          <td class="system-name">2-person team</td>
+          <td style="color:var(--green);">5–7 months with parallel workstreams (logic dev + UI dev).</td>
+        </tr>
+        <tr>
+          <td class="system-name">Recommended approach</td>
+          <td style="color:var(--cyan);">Native Kotlin + Jetpack Compose + Room. Fully offline, Play Store compliant, best UX.</td>
+        </tr>
+        <tr>
+          <td class="system-name">Overall verdict</td>
+          <td style="color:var(--cyan);font-weight:600;">A natural, worthwhile port. The game is well-suited to mobile. The work is substantial but clear-cut — no design unknowns, only execution.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /page-wrap -->
+
+<footer>
+  <p>harVesta Android Port Feasibility Analysis // Generated August 2026</p>
+  <p>Source: harvesta.oaf.monster (PHP 8.4 / MariaDB 11.4) → Target: Android (Kotlin / Jetpack Compose)</p>
+</footer>
+
+</body>
+</html>

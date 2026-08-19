@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>harVesta → Flutter — LLM Port Playbook</title>
+  <style>
+    :root {
+      --bg:     #080c10;
+      --bg2:    #0d1520;
+      --bg3:    #0f1e30;
+      --cyan:   #00d4ff;
+      --amber:  #ffb740;
+      --green:  #39ff98;
+      --red:    #ff4d6a;
+      --orange: #ff8a2b;
+      --purple: #c084fc;
+      --muted:  #5a7a9a;
+      --text:   #c8dff0;
+      --border: #1a3050;
+      --card:   rgba(13,21,32,0.9);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    header {
+      background: linear-gradient(135deg, #060a10 0%, #0a1828 60%, #0d2040 100%);
+      border-bottom: 1px solid var(--cyan);
+      padding: 48px 40px 36px;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 75% 50%, rgba(0,212,255,0.07) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .eyebrow {
+      font-family: 'Courier New', monospace;
+      font-size: 11px; letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--cyan); opacity: 0.7;
+      margin-bottom: 10px;
+    }
+    header h1 { font-size: 2.3rem; font-weight: 700; color: #fff; line-height: 1.15; margin-bottom: 8px; }
+    header h1 em { color: var(--cyan); font-style: normal; }
+    header h1 span { color: var(--amber); }
+    .subtitle { color: var(--muted); font-size: 0.95rem; max-width: 680px; }
+    .meta { margin-top: 20px; display: flex; gap: 16px; flex-wrap: wrap; }
+    .pill {
+      background: rgba(0,212,255,0.08);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px; color: var(--cyan);
+    }
+    .pill.amber { background: rgba(255,183,64,0.08); border-color: rgba(255,183,64,0.25); color: var(--amber); }
+
+    .wrap { max-width: 1060px; margin: 0 auto; padding: 44px 32px 80px; }
+
+    .stack-box {
+      background: linear-gradient(135deg, rgba(0,212,255,0.05) 0%, rgba(192,132,252,0.04) 100%);
+      border: 1px solid rgba(0,212,255,0.25);
+      border-radius: 10px;
+      padding: 28px 32px;
+      margin-bottom: 52px;
+    }
+    .stack-box h2 { font-size: 1.1rem; color: #fff; margin-bottom: 18px; }
+    .stack-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .stack-item {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+    }
+    .stack-item .layer {
+      font-family: 'Courier New', monospace;
+      font-size: 10px; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .stack-item .val { font-size: 0.875rem; color: var(--cyan); font-weight: 500; }
+    .stack-item .sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+    .phase {
+      margin-bottom: 44px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .phase-header {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 24px;
+      background: rgba(0,212,255,0.05);
+      border-bottom: 1px solid var(--border);
+    }
+    .phase-num {
+      font-family: 'Courier New', monospace;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--cyan);
+      line-height: 1;
+      min-width: 36px;
+    }
+    .phase-title { font-size: 1.1rem; font-weight: 600; color: #fff; }
+    .phase-sub { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+    .phase-effort {
+      font-family: 'Courier New', monospace;
+      font-size: 0.82rem;
+      color: var(--amber);
+      text-align: right;
+      white-space: nowrap;
+    }
+    .phase-effort span { display: block; font-size: 10px; color: var(--muted); }
+
+    .phase-body { padding: 22px 24px; display: grid; gap: 20px; }
+    .phase-body.cols-2 { grid-template-columns: 1fr 1fr; }
+    .phase-body.cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+    .pblock h4 {
+      font-family: 'Courier New', monospace;
+      font-size: 10px; letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--cyan); margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(0,212,255,0.15);
+    }
+    .pblock h4.amber { color: var(--amber); border-color: rgba(255,183,64,0.15); }
+    .pblock h4.green { color: var(--green); border-color: rgba(57,255,152,0.15); }
+    .pblock h4.red   { color: var(--red);   border-color: rgba(255,77,106,0.15); }
+
+    .pblock ul { padding-left: 16px; }
+    .pblock li { font-size: 0.875rem; color: var(--text); margin-bottom: 5px; }
+    .pblock p  { font-size: 0.875rem; color: var(--text); }
+
+    .file-tag {
+      display: inline-block;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 4px;
+      padding: 1px 7px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: var(--cyan);
+      margin: 2px 2px 2px 0;
+    }
+
+    .prompt-box {
+      background: rgba(0,0,0,0.45);
+      border: 1px solid rgba(57,255,152,0.2);
+      border-left: 3px solid var(--green);
+      border-radius: 0 6px 6px 0;
+      padding: 14px 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #a0d0b0;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .check-list { padding-left: 0 !important; }
+    .check-list li { list-style: none; padding-left: 0; margin-bottom: 6px; font-size: 0.85rem; }
+    .check-list li::before { content: '☐  '; font-family: monospace; color: var(--amber); }
+
+    .tips-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .tip-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 20px;
+    }
+    .tip-card h3 { font-size: 0.9rem; color: #fff; margin-bottom: 8px; }
+    .tip-card p, .tip-card li { font-size: 0.83rem; color: var(--text); }
+    .tip-card ul { padding-left: 14px; }
+    .tip-card li { margin-bottom: 4px; }
+    .tip-card.good { border-top: 3px solid var(--green); }
+    .tip-card.bad  { border-top: 3px solid var(--red); }
+    .tip-card.info { border-top: 3px solid var(--cyan); }
+    .tip-card.warn { border-top: 3px solid var(--amber); }
+
+    .sec { margin-bottom: 48px; }
+    .sec-hdr {
+      display: flex; align-items: center; gap: 12px;
+      padding-bottom: 12px; margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sec-hdr .tag {
+      font-family: 'Courier New', monospace;
+      font-size: 11px; color: var(--cyan);
+      background: rgba(0,212,255,0.1);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+    .sec-hdr h2 { font-size: 1.2rem; color: #fff; }
+
+    .tl { display: grid; gap: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .tl-row {
+      display: grid;
+      grid-template-columns: 48px 220px 1fr 100px;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(26,48,80,0.5);
+      gap: 12px;
+    }
+    .tl-row:last-child { border-bottom: none; }
+    .tl-row:hover { background: rgba(0,212,255,0.02); }
+    .tl-n { font-family: 'Courier New', monospace; font-size: 1.1rem; font-weight: 700; color: var(--cyan); }
+    .tl-name { font-size: 0.875rem; color: #fff; font-weight: 500; }
+    .tl-bar-bg { height: 18px; background: rgba(255,255,255,0.04); border-radius: 3px; overflow: hidden; }
+    .tl-bar-fill { height: 100%; border-radius: 3px; }
+    .tl-est { font-family: 'Courier New', monospace; font-size: 12px; color: var(--amber); text-align: right; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 32px;
+      max-width: 1060px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    footer p { font-size: 0.78rem; color: var(--muted); font-family: 'Courier New', monospace; }
+
+    @media (max-width: 720px) {
+      header { padding: 28px 18px 24px; }
+      header h1 { font-size: 1.6rem; }
+      .wrap { padding: 28px 14px 60px; }
+      .phase-body.cols-2, .phase-body.cols-3 { grid-template-columns: 1fr; }
+      .phase-header { grid-template-columns: auto 1fr; }
+      .phase-effort { display: none; }
+      .tl-row { grid-template-columns: 32px 1fr 80px; }
+      .tl-bar-bg { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">● LLM Port Playbook // Phase-by-Phase Execution Guide</div>
+  <h1>harVesta → <em>Flutter</em><br>Using an <span>LLM</span> to Do the Heavy Lifting</h1>
+  <p class="subtitle">A structured, phase-by-phase execution plan for porting harVesta from PHP/MariaDB to a single-player Flutter/Dart app, driven by an LLM coding assistant. Each phase tells you what to build, what to feed the LLM, and what to verify before moving on.</p>
+  <div class="meta">
+    <span class="pill">📅 August 2026</span>
+    <span class="pill">🎯 Target: Flutter / Dart</span>
+    <span class="pill amber">🤖 LLM-Driven Development</span>
+    <span class="pill">📱 Single-Player Android</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- STACK -->
+  <div class="stack-box">
+    <h2>📦 Committed Flutter Stack — Decisions Made Before Touching the LLM</h2>
+    <div class="stack-grid">
+      <div class="stack-item">
+        <div class="layer">Language</div>
+        <div class="val">Dart 3.x</div>
+        <div class="sub">Strong typing, null safety, async/await</div>
+      </div>
+      <div class="stack-item">
+        <div class="layer">Framework</div>
+        <div class="val">Flutter (latest stable)</div>
+        <div class="sub">Android primary + iOS/desktop for free</div>
+      </div>
+      <div class="stack-item">
+        <div class="layer">State Mgmt</div>
+        <div class="val">Riverpod 2.0</div>
+        <div class="sub">Best LLM generation support; explicit, typed providers</div>
+      </div>
+      <div class="stack-item">
+        <div class="layer">Local DB</div>
+        <div class="val">Drift (SQLite)</div>
+        <div class="sub">Type-safe ORM; schema mirrors the SQL dump directly</div>
+      </div>
+      <div class="stack-item">
+        <div class="layer">Navigation</div>
+        <div class="val">go_router</div>
+        <div class="sub">Declarative routing; good for mission state machine</div>
+      </div>
+      <div class="stack-item">
+        <div class="layer">Charts</div>
+        <div class="val">fl_chart</div>
+        <div class="sub">Replaces PHP SVG net-worth / P&amp;L charts</div>
+      </div>
+      <div class="stack-item">
+        <div class="layer">Animations</div>
+        <div class="val">flutter_animate</div>
+        <div class="sub">Declarative animation chains; good for combat playback</div>
+      </div>
+      <div class="stack-item">
+        <div class="layer">Models</div>
+        <div class="val">freezed + json_serializable</div>
+        <div class="sub">Immutable data classes; LLMs generate these reliably</div>
+      </div>
+      <div class="stack-item">
+        <div class="layer">DI</div>
+        <div class="val">Riverpod (built-in)</div>
+        <div class="sub">No separate DI package needed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LLM TIPS -->
+  <div class="sec">
+    <div class="sec-hdr">
+      <span class="tag">BEFORE YOU START</span>
+      <h2>How to Work With an LLM on This Project</h2>
+    </div>
+    <div class="tips-grid">
+      <div class="tip-card info">
+        <h3>🎯 The PHP Files Are Your Context</h3>
+        <p>Your existing PHP files are the best context you can give an LLM. For each phase, paste the relevant PHP file(s) directly into the prompt. The LLM reads the logic and translates it — you don't need to describe systems in natural language when the code is already there.</p>
+      </div>
+      <div class="tip-card info">
+        <h3>🧩 One System Per Session</h3>
+        <p>Never ask the LLM to "port the whole game." Break it into systems that match these phases. A scoped task ("implement the market pricing system in Dart, here's the PHP reference") produces clean, verifiable output. Vague tasks produce a mess.</p>
+      </div>
+      <div class="tip-card good">
+        <h3>✅ LLMs Are Great At…</h3>
+        <ul>
+          <li>Generating Drift table schemas from SQL</li>
+          <li>Writing Riverpod providers with clear specs</li>
+          <li>Translating pure math/logic (formulas, dice rolls)</li>
+          <li>Building Flutter widget trees from descriptions</li>
+          <li>Writing freezed/json_serializable boilerplate</li>
+          <li>Seeding static data (ship catalog, modules) as Dart maps</li>
+        </ul>
+      </div>
+      <div class="tip-card bad">
+        <h3>🚫 LLMs Struggle With…</h3>
+        <ul>
+          <li>Holding the full game state in mind across many sessions</li>
+          <li>Subtle game balance bugs (always verify the math)</li>
+          <li>Complex Flutter animation sequences without a clear spec</li>
+          <li>Database migrations (always review generated migration code)</li>
+          <li>Catching logical contradictions across multiple files</li>
+        </ul>
+      </div>
+      <div class="tip-card warn">
+        <h3>⚠️ Always Run the Gate Checklist</h3>
+        <p>Before moving to the next phase, run every item on that phase's deliverables checklist. Don't let the LLM move forward if the previous system has untested logic — bugs compound fast when systems depend on each other.</p>
+      </div>
+      <div class="tip-card warn">
+        <h3>⚠️ Maintain a CONTEXT.md File</h3>
+        <p>Keep a living <code>CONTEXT.md</code> in the Flutter project root that the LLM reads at the start of every session: architecture decisions, naming conventions, which providers exist, which tables exist, completed phases. This is the LLM's memory across sessions.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- GREGG -->
+  <div class="sec">
+    <div class="sec-hdr">
+      <span class="tag">FEATURE — CHARACTER</span>
+      <h2>Gregg — Corporate Advisor</h2>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+
+      <div style="background:rgba(255,183,64,0.05);border:1px solid rgba(255,183,64,0.25);border-left:4px solid var(--amber);border-radius:0 8px 8px 0;padding:22px 24px;">
+        <div style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber);margin-bottom:12px;">Character Profile</div>
+        <p style="font-size:0.875rem;margin-bottom:10px;"><strong style="color:#fff;">Name:</strong> Gregg &mdash; <em style="color:var(--muted);">your Corporate Advisor</em></p>
+        <p style="font-size:0.875rem;margin-bottom:10px;"><strong style="color:#fff;">Role:</strong> Appears on the Corp HQ screen each turn with 2&ndash;3 lines of contextual advice based on your current game state.</p>
+        <p style="font-size:0.875rem;margin-bottom:10px;"><strong style="color:#fff;">Personality:</strong> Genuinely loves his job. Enthusiastic, helpful, and completely non-serious. Speaks in a stream of mangled Gregg-portmanteau words that he treats as totally normal professional vocabulary.</p>
+        <p style="font-size:0.875rem;"><strong style="color:#fff;">Future:</strong> Placeholder for a "Choose Your Advisor" feature &mdash; 3 advisor personalities planned. Gregg is the launch option.</p>
+      </div>
+
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:22px 24px;">
+        <div style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber);margin-bottom:12px;">The Gregg Lexicon</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:0.82rem;">
+          <div><span style="color:var(--amber);font-family:'Courier New',monospace;">Greggsactly</span> <span style="color:var(--muted);">&#8594; exactly</span></div>
+          <div><span style="color:var(--amber);font-family:'Courier New',monospace;">Gregstimate</span> <span style="color:var(--muted);">&#8594; estimate</span></div>
+          <div><span style="color:var(--amber);font-family:'Courier New',monospace;">Greggcellent</span> <span style="color:var(--muted);">&#8594; excellent</span></div>
+          <div><span style="color:var(--amber);font-family:'Courier New',monospace;">Greggnomics</span> <span style="color:var(--muted);">&#8594; economics</span></div>
+          <div><span style="color:var(--amber);font-family:'Courier New',monospace;">Con-Gregg-ulations</span> <span style="color:var(--muted);">&#8594; congratulations</span></div>
+          <div><span style="color:var(--amber);font-family:'Courier New',monospace;">Gregg-pectations</span> <span style="color:var(--muted);">&#8594; expectations</span></div>
+          <div><span style="color:var(--amber);font-family:'Courier New',monospace;">In-Gregg-dible</span> <span style="color:var(--muted);">&#8594; incredible</span></div>
+          <div><span style="color:var(--amber);font-family:'Courier New',monospace;">Gregg-onomically</span> <span style="color:var(--muted);">&#8594; economically</span></div>
+          <div><span style="color:var(--amber);font-family:'Courier New',monospace;">Gregg-ressive</span> <span style="color:var(--muted);">&#8594; aggressive</span></div>
+          <div><span style="color:var(--amber);font-family:'Courier New',monospace;">Gregg-istered</span> <span style="color:var(--muted);">&#8594; registered</span></div>
+          <div><span style="color:var(--amber);font-family:'Courier New',monospace;">Gregg-ulatory</span> <span style="color:var(--muted);">&#8594; regulatory</span></div>
+          <div><span style="color:var(--amber);font-family:'Courier New',monospace;">Gregg-asaurus</span> <span style="color:var(--muted);">&#8594; when he's excited</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:22px 24px;">
+        <div style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:14px;">Contextual Trigger Conditions</div>
+        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:10px;">Gregg checks game state each turn and picks the most relevant advice category:</p>
+        <div style="font-size:0.82rem;">
+          <div style="padding:5px 0;border-bottom:1px solid rgba(26,48,80,0.4);"><span style="color:var(--red);">&#9679;</span> <strong style="color:#fff;">Low Solars</strong> &mdash; nags you to sell resources or take a paying mission</div>
+          <div style="padding:5px 0;border-bottom:1px solid rgba(26,48,80,0.4);"><span style="color:var(--green);">&#9679;</span> <strong style="color:#fff;">Good Net Worth Growth</strong> &mdash; compliments your recent turn performance</div>
+          <div style="padding:5px 0;border-bottom:1px solid rgba(26,48,80,0.4);"><span style="color:var(--amber);">&#9679;</span> <strong style="color:#fff;">Ships Damaged</strong> &mdash; suggests prioritizing drydock repairs</div>
+          <div style="padding:5px 0;border-bottom:1px solid rgba(26,48,80,0.4);"><span style="color:var(--cyan);">&#9679;</span> <strong style="color:#fff;">No Mission Taken This Turn</strong> &mdash; reminds you contracts are expiring</div>
+          <div style="padding:5px 0;border-bottom:1px solid rgba(26,48,80,0.4);"><span style="color:var(--purple);">&#9679;</span> <strong style="color:#fff;">Research Level-Up</strong> &mdash; celebrates the breakthrough</div>
+          <div style="padding:5px 0;border-bottom:1px solid rgba(26,48,80,0.4);"><span style="color:var(--orange);">&#9679;</span> <strong style="color:#fff;">Falling Behind on Leaderboard</strong> &mdash; strategically panics</div>
+          <div style="padding:5px 0;border-bottom:1px solid rgba(26,48,80,0.4);"><span style="color:var(--green);">&#9679;</span> <strong style="color:#fff;">Leaderboard Lead</strong> &mdash; extremely impressed with himself for advising you</div>
+          <div style="padding:5px 0;"><span style="color:var(--muted);">&#9679;</span> <strong style="color:#fff;">No Specific Condition</strong> &mdash; generic turn-opening pep talk</div>
+        </div>
+      </div>
+
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:22px 24px;">
+        <div style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:14px;">Sample Gregg Lines</div>
+        <div style="display:flex;flex-direction:column;gap:12px;font-size:0.82rem;font-style:italic;color:var(--text);">
+          <div style="background:rgba(0,0,0,0.3);border-left:2px solid var(--amber);padding:8px 12px;border-radius:0 4px 4px 0;">"Greggcellent turn, chief. Our net worth trajectory is &mdash; and I mean this Gregg-onomically speaking &mdash; going straight up. Greggsactly where we want it."</div>
+          <div style="background:rgba(0,0,0,0.3);border-left:2px solid var(--red);padding:8px 12px;border-radius:0 4px 4px 0;">"Okay so, uh, our Solar situation is &mdash; my Gregstimate &mdash; not great. Might want to hit the market before Cyberdyne notices we can't afford lunch."</div>
+          <div style="background:rgba(0,0,0,0.3);border-left:2px solid var(--purple);padding:8px 12px;border-radius:0 4px 4px 0;">"Con-Gregg-ulations!! Research breakthrough on Astrogation Level 3! I personally had nothing to do with it but I feel like I really contributed energy-wise."</div>
+          <div style="background:rgba(0,0,0,0.3);border-left:2px solid var(--orange);padding:8px 12px;border-radius:0 4px 4px 0;">"So Goliath just leapfrogged us on the leaderboard and I'm not Gregg-istering any concerns here but... I'm Gregg-istering some concerns."</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="margin-top:16px;background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.15);border-radius:6px;padding:16px 20px;font-size:0.875rem;">
+      <strong style="color:#fff;">Implementation note for the LLM (Phase 10):</strong> Build a <code>GreggAdvisorService</code> in <code>lib/game/advisor/</code> that takes a <code>GameStateSnapshot</code> (turn, Solars, net worth delta, leaderboard position, damaged ships, recent research level-up, skipped mission flag) and returns a <code>GreggAdvice</code> object containing 2&ndash;3 lines of text. Lines are selected from condition-keyed string pools with light randomization so Gregg doesn't repeat himself verbatim every turn. Render on the Corp HQ screen as a small dismissible card with Gregg's name. Keep all string data in <code>lib/config/gregg_lines.dart</code> so it's easy to expand later and to swap out when additional advisors are added.
+    </div>
+  </div>
+
+  <!-- PHASES -->
+  <div class="sec">
+    <div class="sec-hdr">
+      <span class="tag">PHASES</span>
+      <h2>Phase-by-Phase Execution Plan</h2>
+    </div>
+
+    <!-- PHASE 0 -->
+    <div class="phase">
+      <div class="phase-header">
+        <div class="phase-num">0</div>
+        <div>
+          <div class="phase-title">Project Setup &amp; CONTEXT.md</div>
+          <div class="phase-sub">Architecture lock-in, folder structure, and building the LLM's project memory file — before any code</div>
+        </div>
+        <div class="phase-effort">2–3 days<span>Foundation</span></div>
+      </div>
+      <div class="phase-body cols-2">
+        <div class="pblock">
+          <h4>What You Do (Not the LLM)</h4>
+          <ul>
+            <li>Create the Flutter project: <code>flutter create harvesta</code></li>
+            <li>Add all pubspec.yaml dependencies: Riverpod, Drift, go_router, fl_chart, flutter_animate, freezed, json_serializable, build_runner</li>
+            <li>Establish folder structure:<br>
+              <code>lib/data/</code> — Drift DB + DAOs<br>
+              <code>lib/models/</code> — freezed data classes<br>
+              <code>lib/providers/</code> — Riverpod providers<br>
+              <code>lib/screens/</code> — Flutter UI<br>
+              <code>lib/game/</code> — pure game logic (no Flutter imports)<br>
+              <code>lib/config/</code> — static JSON/Dart data catalogs
+            </li>
+            <li>Export the SQL schema from the web game for reference</li>
+            <li>Create and commit <code>CONTEXT.md</code></li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="amber">CONTEXT.md Starter Content</h4>
+          <div class="prompt-box">You are porting the harVesta web game (PHP/MariaDB)
+to a Flutter/Dart single-player Android app.
+
+Stack: Flutter, Dart 3, Riverpod 2.0, Drift (SQLite),
+go_router, fl_chart, flutter_animate, freezed.
+
+Folder structure:
+  lib/data/      → Drift DB and DAOs
+  lib/models/    → freezed immutable data classes
+  lib/providers/ → Riverpod providers
+  lib/screens/   → Flutter UI widgets
+  lib/game/      → pure game logic (no Flutter imports)
+  lib/config/    → static JSON/Dart data catalogs
+
+Naming conventions:
+  - Drift tables: CamelCase (Fleet, Crew, CorpInventory)
+  - Providers: camelCaseProvider
+  - Screens: NameScreen
+
+Completed phases: [update this as you go]
+Known DB tables: [list as you build them]
+Known providers: [list as you build them]</div>
+        </div>
+        <div class="pblock">
+          <h4 class="green">Gate Checklist</h4>
+          <ul class="check-list">
+            <li><code>flutter pub get</code> runs clean</li>
+            <li><code>flutter run</code> shows a blank dark scaffold</li>
+            <li>All pubspec packages resolve without conflict</li>
+            <li>CONTEXT.md exists and is committed to git</li>
+            <li>Folder structure in place</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="red">Watch Out For</h4>
+          <ul>
+            <li>Version conflicts between Drift and Riverpod — check pub.dev compatibility before locking versions</li>
+            <li>build_runner conflicts with freezed — pin exact versions from a known-good setup before starting</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 1 -->
+    <div class="phase">
+      <div class="phase-header">
+        <div class="phase-num">1</div>
+        <div>
+          <div class="phase-title">Database Schema &amp; Seed Data</div>
+          <div class="phase-sub">All 27 Drift tables + seeding static catalogs (ships, modules, asteroids, research disciplines)</div>
+        </div>
+        <div class="phase-effort">1.5–2 weeks<span>Data Foundation</span></div>
+      </div>
+      <div class="phase-body cols-2">
+        <div class="pblock">
+          <h4>What the LLM Builds</h4>
+          <ul>
+            <li>All Drift <code>@DataClassName</code> table definitions, one per PHP table</li>
+            <li>Central <code>AppDatabase</code> class registering all tables</li>
+            <li>DAO classes per logical domain: FleetDao, CrewDao, InventoryDao, MissionDao, etc.</li>
+            <li><code>DatabaseSeeder</code> that populates static tables on first run: 38 ship models, 26 modules, ~400 asteroids, 10 research disciplines, 7 commodities, crew name pool</li>
+            <li><code>GameDataDao</code> for the single-row turn counter table</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="amber">Feed the LLM These Files</h4>
+          <p>
+            <span class="file-tag">udgdwxxz_harvesta(2).sql</span>
+            <span class="file-tag">data.php</span>
+            <span class="file-tag">db.php</span>
+          </p>
+          <p style="margin-top:10px;font-size:0.82rem;">Paste the CREATE TABLE statements from the SQL dump. Also paste <code>data.php</code> — it contains all ship model stats, module definitions, and commodity names as PHP arrays that the LLM can convert to Dart seed data maps.</p>
+        </div>
+        <div class="pblock">
+          <h4>Sample Prompt</h4>
+          <div class="prompt-box">Here is the SQL schema for the harVesta database.
+Convert each CREATE TABLE into a Drift table class.
+
+Produce:
+1. One Dart file per table in lib/data/tables/
+2. A central AppDatabase in lib/data/app_database.dart
+3. Use int primary keys where SQL uses INT AUTO_INCREMENT
+4. TextColumn for VARCHAR, IntColumn for INT,
+   RealColumn for DECIMAL/FLOAT
+
+[paste SQL CREATE TABLE statements here]</div>
+        </div>
+        <div class="pblock">
+          <h4 class="green">Gate Checklist</h4>
+          <ul class="check-list">
+            <li><code>dart run build_runner build</code> completes with no errors</li>
+            <li>App launches and creates SQLite DB on first run</li>
+            <li>Seeder populates ship models, modules, asteroids on fresh install</li>
+            <li><code>GameDataDao.getTurn()</code> returns turn 1</li>
+            <li>All 27 tables visible in DB Inspector</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="red">Watch Out For</h4>
+          <ul>
+            <li>The <code>combatTable</code> scratch table is a PHP global state hack. In Flutter it becomes a Riverpod <code>StateProvider&lt;CombatState?&gt;</code> — not a DB table. Have the LLM skip it here and note it for Phase 7.</li>
+            <li>Dynamic tables (<code>corp_turn_actions</code>, <code>corpFinanceLedger</code>) — implement them as proper Drift tables; don't replicate the "CREATE IF NOT EXISTS on first access" pattern.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 2 -->
+    <div class="phase">
+      <div class="phase-header">
+        <div class="phase-num">2</div>
+        <div>
+          <div class="phase-title">Corp Initialization &amp; Turn Engine</div>
+          <div class="phase-sub">New game setup, corp state, the turn counter, action locks, and "advance turn" skeleton</div>
+        </div>
+        <div class="phase-effort">3–5 days<span>Core Loop Heart</span></div>
+      </div>
+      <div class="phase-body cols-2">
+        <div class="pblock">
+          <h4>What the LLM Builds</h4>
+          <ul>
+            <li><code>NewGameScreen</code> — corp name input, difficulty selection, initial resource allocation</li>
+            <li><code>GameStateProvider</code> — Riverpod provider wrapping current turn, corp name, Solars balance</li>
+            <li><code>TurnActionsProvider</code> — tracks which actions are completed this turn (scan, mine, research, cadets, expedition, market)</li>
+            <li><code>TurnEngine</code> in <code>lib/game/turn_engine.dart</code> — orchestrates all per-turn logic in sequence, then increments the turn counter. AI corps step is stubbed out for now.</li>
+            <li>Corp HQ dashboard scaffold — action readiness widget showing done/available actions</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="amber">Feed the LLM These Files</h4>
+          <p>
+            <span class="file-tag">advance-turn.php</span>
+            <span class="file-tag">turn_actions.class.php</span>
+            <span class="file-tag">onboarding.class.php</span>
+          </p>
+          <p style="margin-top:10px;font-size:0.82rem;"><code>advance-turn.php</code> shows exactly what happens in sequence each turn. Have the LLM stub each step as a function call in <code>TurnEngine</code> — even the AI step — returning a <code>TurnResult</code> object.</p>
+        </div>
+        <div class="pblock">
+          <h4 class="green">Gate Checklist</h4>
+          <ul class="check-list">
+            <li>New game flow works: enter corp name → initial state populated in DB</li>
+            <li><code>TurnActionsProvider</code> tracks completed actions and resets on turn advance</li>
+            <li>Advance Turn button increments turn counter in DB</li>
+            <li>Corp HQ shows current turn number and action readiness</li>
+            <li>Action locks prevent double-acting in the same turn</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="red">Watch Out For</h4>
+          <ul>
+            <li>The web version lets any authenticated user advance the turn. Single-player: only the player can, and only once. Enforce in the provider, not just the UI.</li>
+            <li><code>advanceTurn()</code> stubs out AI logic — that's intentional. It calls a placeholder <code>runAiCorps()</code> that does nothing until Phase 9.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 3 -->
+    <div class="phase">
+      <div class="phase-header">
+        <div class="phase-num">3</div>
+        <div>
+          <div class="phase-title">Economy: Market, Resources &amp; Financial Ledger</div>
+          <div class="phase-sub">7-commodity market, deterministic pricing, corp inventory, P&amp;L ledger, fl_chart analytics</div>
+        </div>
+        <div class="phase-effort">1–1.5 weeks<span>Money Systems</span></div>
+      </div>
+      <div class="phase-body cols-2">
+        <div class="pblock">
+          <h4>What the LLM Builds</h4>
+          <ul>
+            <li><code>MarketPriceService</code> — pure Dart, no DB. Deterministic formula: hash(commodityName + gameTurn) → ±10% variance. Buy = base × 1.20 × tradeBonus; Sell = base × 0.90 × tradeBonus.</li>
+            <li><code>InventoryProvider</code> — corp's current Solars + 7 commodity quantities from DB</li>
+            <li><code>MarketScreen</code> — buy/sell UI per commodity with live price, quantity slider, confirm</li>
+            <li><code>LedgerService</code> — records per-turn P&amp;L snapshots to <code>CorpFinanceLedger</code> table on turn advance</li>
+            <li><code>LedgerScreen</code> — fl_chart line chart for net worth trajectory + revenue/expense breakdown table</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="amber">Feed the LLM These Files</h4>
+          <p>
+            <span class="file-tag">market.php</span>
+            <span class="file-tag">market-trade.php</span>
+            <span class="file-tag">ledger.class.php</span>
+            <span class="file-tag">ledger.php</span>
+          </p>
+          <p style="margin-top:10px;font-size:0.82rem;">The pricing formula is self-contained in <code>market.php</code>. PHP's <code>crc32()</code> can return negative integers — Dart doesn't have a built-in crc32. Ask the LLM to use a simple consistent hash (fnv1a or similar). Only turn-to-turn consistency matters, not matching the PHP values exactly.</p>
+        </div>
+        <div class="pblock">
+          <h4 class="green">Gate Checklist</h4>
+          <ul class="check-list">
+            <li>Market prices vary turn-to-turn deterministically (same turn = same price on repeat)</li>
+            <li>Buy/sell transactions correctly update Solars and commodity quantities</li>
+            <li>Trade Relationships research bonus (3%/level, max 20%) applies at the service level</li>
+            <li>Ledger records a P&amp;L row on each turn advance</li>
+            <li>Net worth chart renders correctly in fl_chart over multiple turns</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="red">Watch Out For</h4>
+          <ul>
+            <li>Solars balance exists in <code>corpInventory</code> and is reflected in net worth — make sure they're sourced from the same DB row, never duplicated.</li>
+            <li>Research bonuses are cross-cutting — verify the Trade Relationships bonus is applied in <code>MarketPriceService</code>, not just described somewhere.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 4 -->
+    <div class="phase">
+      <div class="phase-header">
+        <div class="phase-num">4</div>
+        <div>
+          <div class="phase-title">Station: Scanning, Mining, Salvage, Research &amp; Upgrades</div>
+          <div class="phase-sub">Radar sweep, asteroid mining, salvage ops, research progression, station building upgrades</div>
+        </div>
+        <div class="phase-effort">1.5–2 weeks<span>Station Systems</span></div>
+      </div>
+      <div class="phase-body cols-2">
+        <div class="pblock">
+          <h4>What the LLM Builds</h4>
+          <ul>
+            <li><code>ScanningService</code> — draws N random asteroids from master list into corp's scanned list (N = Scanner level + research bonus)</li>
+            <li><code>MiningService</code> — mines chosen asteroid for resources; depletes asteroid m3 volume; yield based on composition + research bonus</li>
+            <li><code>SalvageService</code> — similar to mining from the derelict salvage table</li>
+            <li><code>ResearchService</code> — per-turn progress: (scientist stats + lab level) → progress toward next level; exponential goal formula (300 × 2^level)</li>
+            <li><code>StationUpgradeService</code> — level up a building for Solar cost</li>
+            <li><code>StationScreen</code> — main station hub: building levels, scan action, mining dispatch, research queue, resource stockpile display</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="amber">Feed the LLM These Files</h4>
+          <p>
+            <span class="file-tag">station.php</span>
+            <span class="file-tag">station-radarsweep.php</span>
+            <span class="file-tag">station-mineasteroid.php</span>
+            <span class="file-tag">station-scanasteroids.php</span>
+            <span class="file-tag">station-salvage.php</span>
+            <span class="file-tag">station-research.php</span>
+            <span class="file-tag">station-upgradebuilding.php</span>
+          </p>
+        </div>
+        <div class="pblock">
+          <h4 class="green">Gate Checklist</h4>
+          <ul class="check-list">
+            <li>Radar sweep adds correct N asteroids to corp's scanned list</li>
+            <li>Asteroid m3 depletes when mined; row removed when exhausted</li>
+            <li>Research progresses each turn; level-up fires when goal reached</li>
+            <li>All 10 research bonuses apply at the correct service call sites</li>
+            <li>Building upgrade deducts correct Solar cost and increments level</li>
+            <li>Turn action locks prevent double-scan or double-mine per turn</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="red">Watch Out For</h4>
+          <ul>
+            <li>Research bonuses are cross-cutting — the LLM may implement them in the research file and forget to wire them into scan/mine/market services. Check each bonus at its actual call site.</li>
+            <li>Asteroid scanning has two concepts: "persistently known" ( asteroidsScanned) vs "discovered this turn" (tempAsteroidsScanned). Keep both distinct in the Drift schema.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 5 -->
+    <div class="phase">
+      <div class="phase-header">
+        <div class="phase-num">5</div>
+        <div>
+          <div class="phase-title">Fleet, Ships, Modules &amp; Crew</div>
+          <div class="phase-sub">Ship management, squadron grouping, module loadout, ship quirks, drydock repairs, officer system, cadet academy</div>
+        </div>
+        <div class="phase-effort">3–4 weeks<span>Largest Phase</span></div>
+      </div>
+      <div class="phase-body cols-3">
+        <div class="pblock">
+          <h4>Ships &amp; Squadrons</h4>
+          <ul>
+            <li>Fleet screen: all ships grouped by squadron</li>
+            <li>Ship detail view: 6 subsystem meters, modules, quirks, crew</li>
+            <li>Rename ship / rename squadron</li>
+            <li>Buy ship from shipyard (deduct Solars)</li>
+            <li>Sell ship (recover partial value)</li>
+            <li>Drydock repair (Solars + materials; discounted by Ship Building research)</li>
+            <li>Admiral designation: highest-value ship's captain auto-flagged</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4>Module Loadout</h4>
+          <ul>
+            <li>Module equip/unequip screen per ship</li>
+            <li>Hardpoint slot enforcement: Weapon, Armor, Bay slots per chassis</li>
+            <li>Buy modules from market (26 types across tiers)</li>
+            <li>Ship Bay research unlocks bonus hardpoints at L3/L5</li>
+            <li><code>ShipModService</code> handles equip validation</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4>Crew &amp; Cadets</h4>
+          <ul>
+            <li>Officer roster: 8 skills, role assignment, salary display</li>
+            <li>Payroll deducted on turn advance</li>
+            <li>Cadet academy: 20-candidate rotating roster</li>
+            <li>Hire cadet → becomes officer</li>
+            <li>Training progress tracking</li>
+            <li>AI poaching simulation (corps above soft cap lose cadets)</li>
+            <li>1 walk-in cadet per turn naturally</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="amber">Feed the LLM These Files</h4>
+          <p>
+            <span class="file-tag">fleet.php</span>
+            <span class="file-tag">fleet-purchaseship.php</span>
+            <span class="file-tag">fleet-modbuy.php</span>
+            <span class="file-tag">fleet-repair.php</span>
+            <span class="file-tag">fleet-sellship.php</span>
+            <span class="file-tag">fleet-adjustcrew.php</span>
+            <span class="file-tag">shipyard.php</span>
+            <span class="file-tag">station-cadethire.php</span>
+            <span class="file-tag">station-cadetprogress.php</span>
+            <span class="file-tag">station-cadetrecruit.php</span>
+            <span class="file-tag">recent_graduates.class.php</span>
+          </p>
+        </div>
+        <div class="pblock">
+          <h4 class="green">Gate Checklist</h4>
+          <ul class="check-list">
+            <li>Can buy a ship → appears in fleet grouped by squadron</li>
+            <li>Hardpoint limits enforced when equipping modules</li>
+            <li>Ship quirks display on ship detail screen</li>
+            <li>Drydock repair cost formula matches PHP reference</li>
+            <li>Cadet board shows 20 candidates, refreshes on turn advance</li>
+            <li>Payroll deducted correctly on turn advance</li>
+            <li>Admiral designation auto-assigns to highest-value ship's captain</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="red">Watch Out For</h4>
+          <ul>
+            <li><code>fleet.php</code> is 1,027 lines — the LLM will want to produce a monolithic widget. Push back: insist on small, composable widgets (ShipCard, SubsystemBar, ModuleSlot, etc.)</li>
+            <li>Module slot counts = chassis base stats PLUS Ship Bay research bonus. Make sure both sources are added in the service layer, not hardcoded in UI.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 6 -->
+    <div class="phase">
+      <div class="phase-header">
+        <div class="phase-num">6</div>
+        <div>
+          <div class="phase-title">Mission Board, Runner &amp; Interruptors</div>
+          <div class="phase-sub">Mission generation, 3-waypoint cockpit state machine, all 10 sector encounter scenarios</div>
+        </div>
+        <div class="phase-effort">2.5–4 weeks<span>Most Interesting Phase</span></div>
+      </div>
+      <div class="phase-body cols-2">
+        <div class="pblock">
+          <h4>What the LLM Builds</h4>
+          <ul>
+            <li><code>MissionGeneratorService</code> — 5 missions per turn, 9 types, templated narrative, distance 0.20–6.00 AU, fuel cost deduction (⁂1,200/AU)</li>
+            <li><code>MissionBoardScreen</code> — view available missions with type/distance/payout/bonus</li>
+            <li><code>MissionStateProvider</code> (Riverpod StateNotifier) — the 3-waypoint state machine: SquadronSelect → Waypoint1 → Interruptor? → Waypoint2 → Interruptor? → Waypoint3 → Outcome</li>
+            <li><code>MissionCockpitScreen</code> — waypoint cockpit UI with narrative text and squadron status</li>
+            <li><code>InterruptorEngine</code> — sealed class hierarchy (one subclass per encounter type). Each <code>resolve(SquadronSnapshot, int threatRating)</code> rolls dice against squadron stats, returns <code>InterruptorOutcome</code></li>
+            <li>10 interruptor scenario widgets with choice buttons and outcome display</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="amber">Feed the LLM These Files</h4>
+          <p>
+            <span class="file-tag">mission.php</span>
+            <span class="file-tag">mission-generate.php</span>
+            <span class="file-tag">mission-zonulae.php</span>
+            <span class="file-tag">mission-confirm.php</span>
+            <span class="file-tag">interruptors.class.php</span>
+            <span class="file-tag">mission_narrative.class.php</span>
+          </p>
+          <p style="margin-top:10px;font-size:0.82rem;">The interruptors file (915 lines) is the richest context. Feed it with the explicit instruction below — the key is removing global PHP dependencies.</p>
+        </div>
+        <div class="pblock">
+          <h4>Key Interruptors Prompt</h4>
+          <div class="prompt-box">interruptors.class.php uses global PHP variables
+($link, $_SESSION, $crew, $squadron, $CR).
+
+Replace ALL global dependencies with explicit Dart
+constructor parameters:
+  - SquadronSnapshot (immutable stats snapshot)
+  - int threatRating (replaces $CR)
+
+Do NOT use global state. Each interruptor resolves
+purely from its input parameters.
+
+Use a sealed class hierarchy — one subclass per
+encounter type. Not a switch statement.</div>
+        </div>
+        <div class="pblock">
+          <h4 class="green">Gate Checklist</h4>
+          <ul class="check-list">
+            <li>5 missions generate correctly on turn advance</li>
+            <li>Fuel cost deducted from payout based on mission distance</li>
+            <li>Mission runner progresses through all 3 waypoints</li>
+            <li>Interruptors fire at correct waypoints and present choices</li>
+            <li>All 10 encounter types tested; dice rolls produce correct probability spread</li>
+            <li>Mission outcomes (payout, bonus, resources) correctly update DB</li>
+            <li>Mid-mission state persists to DB so it survives app restarts</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="red">Watch Out For</h4>
+          <ul>
+            <li>The LLM will often default to a giant switch statement for the interruptors. Insist on sealed classes — far more maintainable and easier to extend later.</li>
+            <li>PHP session-based mission state doesn't survive app close. Design the Riverpod state provider to persist mid-mission state to DB so it survives restarts.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 7 -->
+    <div class="phase">
+      <div class="phase-header">
+        <div class="phase-num">7</div>
+        <div>
+          <div class="phase-title">Combat Engine — Pure Dart Logic</div>
+          <div class="phase-sub">Port the PHP Naval Combat Engine v2 math to pure Dart — no UI yet, just the engine and unit tests</div>
+        </div>
+        <div class="phase-effort">2–3 weeks<span>Hardest Logic</span></div>
+      </div>
+      <div class="phase-body cols-2">
+        <div class="pblock">
+          <h4>What the LLM Builds (Logic Only — No Flutter Imports)</h4>
+          <ul>
+            <li><code>CombatEngine</code> class in <code>lib/game/combat/</code></li>
+            <li>Input: immutable <code>PlayerSquadron</code> + <code>EnemySquadron</code> snapshots taken from DB before combat</li>
+            <li>Output: <code>CombatLog</code> — list of <code>CombatRound</code> objects with full state per round</li>
+            <li>6-subsystem degradation per ship (Engines, Weapons, Maneuv, LifeSupp, Cargo, Hull)</li>
+            <li>Weapon initiative ordering (WeapCtrl stat)</li>
+            <li>Crew skill modifiers: Captain → morale, FO → attack, Pilot → defense, SO → in-combat repair</li>
+            <li>Ship quirk penalties applied at combat start</li>
+            <li>Morale cascade logic</li>
+            <li>Surrender condition checking</li>
+            <li>After-Action Report (AAR) generation: damage totals, casualties, XP awards, payout, net profit</li>
+            <li>Dart unit test file covering all the above</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="amber">Feed the LLM These Files</h4>
+          <p>
+            <span class="file-tag">battle_v2.class.php</span>
+            <span class="file-tag">battle.class.php</span>
+          </p>
+          <p style="margin-top:10px;font-size:0.82rem;"><code>battle_v2.class.php</code> is 1,222 lines. Feed it in chunks if context is limited: first class properties + constructor, then the main battle loop, then the AAR calculation. Have the LLM build the unit test harness alongside, not after.</p>
+        </div>
+        <div class="pblock">
+          <h4>Key Combat Engine Prompt</h4>
+          <div class="prompt-box">Port this PHP combat engine to pure Dart.
+No Flutter imports. No database calls inside
+the engine — all data passed in as immutable
+snapshot objects at construction time.
+
+The engine must be deterministic given the same
+inputs and the same Random seed. Add a seed
+parameter to support replays and testing.
+
+Output a CombatLog with a List of CombatRound
+objects (one per exchange). Each round must record
+enough state to animate the combat later — do not
+discard intermediate subsystem values.</div>
+        </div>
+        <div class="pblock">
+          <h4 class="green">Gate Checklist</h4>
+          <ul class="check-list">
+            <li>Unit test: 100 combats run without null exceptions or infinite loops</li>
+            <li>All ships eventually reach 0 HP or combat ends by round cap</li>
+            <li>AAR payout is always non-negative</li>
+            <li>Determinism test: same seed + same inputs = identical CombatLog</li>
+            <li>Crew skill modifiers visibly change outcomes (test maxed vs baseline crew)</li>
+            <li>Ship quirks apply subsystem penalties in round 1 state</li>
+            <li>Zero Flutter or DB imports anywhere in <code>lib/game/combat/</code></li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="red">Watch Out For</h4>
+          <ul>
+            <li>The PHP engine uses a global <code>combatTable</code> scratch table — ensure the LLM does NOT replicate this. All state is in-memory in Dart.</li>
+            <li>The LLM may simplify morale cascades or quirk penalties. Cross-check the PHP formulas explicitly and verify they match in test output.</li>
+            <li>Dart's <code>Random</code> requires explicit seeding for reproducibility — make sure the LLM wires this up from the start, not as an afterthought.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 8 -->
+    <div class="phase">
+      <div class="phase-header">
+        <div class="phase-num">8</div>
+        <div>
+          <div class="phase-title">Combat Screen &amp; Animation</div>
+          <div class="phase-sub">Build the combat UI — animated playback from the CombatLog, subsystem bars, event ticker, AAR screen</div>
+        </div>
+        <div class="phase-effort">2–3 weeks<span>Most Creative Phase</span></div>
+      </div>
+      <div class="phase-body cols-2">
+        <div class="pblock">
+          <h4>What the LLM Builds</h4>
+          <ul>
+            <li><code>CombatScreen</code> — drives playback of a pre-computed <code>CombatLog</code> frame by frame</li>
+            <li>Player squadron panel (left) + Enemy squadron panel (right): ship name, 6 subsystem <code>LinearProgressIndicator</code> bars</li>
+            <li>Combat event ticker — narrative text for each round scrolling in a log panel</li>
+            <li>flutter_animate effects: damage flash on subsystem bars, ship destruction animation, morale drop indicators</li>
+            <li>Speed controls: 0.5×, 1×, 2×, Instant (jump to final state)</li>
+            <li>Surrender dialog mid-combat</li>
+            <li>Tactical Directive selection screen before combat begins</li>
+            <li><code>AARScreen</code> — damage table, casualties, XP per officer, payout breakdown, net profit, "Return to Station" button that writes XP to DB</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="amber">Feed the LLM These Files</h4>
+          <p>
+            <span class="file-tag">combat-lab.php</span>
+            <span class="file-tag">battle_v2.class.php</span>
+          </p>
+          <p style="margin-top:10px;font-size:0.82rem;"><code>combat-lab.php</code> (117KB) contains the JavaScript animation renderer from the web version. Feed the relevant sections as a reference for what the UI communicates — ship panels, subsystem bars, event log. The LLM should understand what to show, not translate the JS directly.</p>
+        </div>
+        <div class="pblock">
+          <h4>Combat Screen Prompt</h4>
+          <div class="prompt-box">The CombatEngine (lib/game/combat/) produces a
+CombatLog. Build a Flutter CombatScreen that:
+
+1. Takes a CombatLog as input (pre-computed)
+2. Plays through rounds using a Timer
+3. Left column: player ships. Right: enemy ships.
+4. Each ship: name + 6 LinearProgressIndicator bars
+   for Hull, Engines, WeapCtrl, Maneuv, LifeSupp, Cargo
+5. A scrolling text panel shows narrative per round
+6. Speed buttons: ×0.5, ×1, ×2, Instant
+
+Use flutter_animate for damage flash effects.
+The screen does NOT re-run the engine — it only
+reads from the pre-computed CombatLog.</div>
+        </div>
+        <div class="pblock">
+          <h4 class="green">Gate Checklist</h4>
+          <ul class="check-list">
+            <li>Combat plays through all rounds without errors or skips</li>
+            <li>All 6 subsystem bars update correctly each round</li>
+            <li>Destroyed ships visually indicate destruction (greyed out)</li>
+            <li>Instant mode jumps to final state and shows AAR immediately</li>
+            <li>AAR payout matches CombatEngine's calculated output exactly</li>
+            <li>AAR XP awards update crew skill values in DB on confirmation</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="red">Watch Out For</h4>
+          <ul>
+            <li>Start simple: step through CombatRounds with a fixed-interval Timer. Add flutter_animate polish after the logic is verified — not before.</li>
+            <li>The combat screen must NOT re-run the CombatEngine during playback. The log is pre-computed. Playback only reads from it.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 9 -->
+    <div class="phase">
+      <div class="phase-header">
+        <div class="phase-num">9</div>
+        <div>
+          <div class="phase-title">AI Corporations</div>
+          <div class="phase-sub">6 AI corps at 3 difficulty tiers — scan, mine, research, buy, and auto-resolve missions on turn advance</div>
+        </div>
+        <div class="phase-effort">2–3 weeks<span>Competition Layer</span></div>
+      </div>
+      <div class="phase-body cols-2">
+        <div class="pblock">
+          <h4>What the LLM Builds</h4>
+          <ul>
+            <li><code>AiCorpService</code> in <code>lib/game/ai/</code>, called by <code>TurnEngine.advanceTurn()</code></li>
+            <li>6 predefined AI corps seeded into DB on new game: Syndicate, Apex, Titan, Goliath, Cyberdyne, Spectre</li>
+            <li>3 difficulty tiers: Easy (⁂100k start), Med (⁂250k), Hard (⁂500k) with different ship class preferences</li>
+            <li>Per-turn AI decision matrix: scan → mine → research → upgrade → buy ships → auto-resolve mission with a dice roll (no full interruptor flow)</li>
+            <li>AI net worth calculated and stored for leaderboard</li>
+            <li><code>IntelScreen</code> — local leaderboard showing player + 6 AI corps ranked by net worth, with fleet counts and stockpile visibility</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="amber">Feed the LLM These Files</h4>
+          <p>
+            <span class="file-tag">login/</span> (specifically ai_handler.class.php inside the login folder)
+            <span class="file-tag">advance-turn.php</span>
+            <span class="file-tag">data.php</span>
+          </p>
+          <p style="margin-top:10px;font-size:0.82rem;">The AI handler is ~400 lines of PHP decision logic. Feed it directly. Note that the LLM should simplify where the web version took shortcuts — AI doesn't need to run the full interruptor system; auto-resolve missions with a weighted dice roll instead.</p>
+        </div>
+        <div class="pblock">
+          <h4 class="green">Gate Checklist</h4>
+          <ul class="check-list">
+            <li>All 6 AI corps exist in DB from new game initialization</li>
+            <li>AI corps' Solars, fleet size, and research level change each turn</li>
+            <li>Intel screen shows correct net worth rankings (player + AI)</li>
+            <li>Hard AI corps accumulate faster and build larger ships than Easy AI</li>
+            <li>Turn advance does not hang or error when AI corps run</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="red">Watch Out For</h4>
+          <ul>
+            <li>AI turn processing runs on turn advance — if it causes UI jank, move it to a Dart isolate so the main thread stays responsive.</li>
+            <li>Keep AI data access strictly to AI-owned DB rows. AI should never read or modify the player's corp state.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 10 -->
+    <div class="phase">
+      <div class="phase-header">
+        <div class="phase-num">10</div>
+        <div>
+          <div class="phase-title">Polish, Codex, Onboarding &amp; Release</div>
+          <div class="phase-sub">In-game encyclopedia, tutorial flow, save slot management, notifications, Play Store submission</div>
+        </div>
+        <div class="phase-effort">3–4 weeks<span>Ship It</span></div>
+      </div>
+      <div class="phase-body cols-2">
+        <div class="pblock">
+          <h4>What the LLM Builds</h4>
+          <ul>
+            <li><code>CodexScreen</code> — in-game encyclopedia: all 38 ship models with stats, all 26 modules with descriptions, 10 research disciplines, commodity guide. Sourced from seed data — no DB queries needed.</li>
+            <li>Onboarding flow: first-run tutorial overlays on Corp HQ and Station screens</li>
+            <li>Save slot manager: name a save, create new game, load existing, delete</li>
+            <li>Settings screen: speed defaults, notification preferences</li>
+            <li>Push notification scheduling: "Research complete," "New missions available," "Drydock finished"</li>
+            <li>App icon, splash screen, Play Store metadata</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="amber">Feed the LLM These Files</h4>
+          <p>
+            <span class="file-tag">codex.php</span>
+            <span class="file-tag">codex-ships.php</span>
+            <span class="file-tag">onboarding.class.php</span>
+          </p>
+        </div>
+        <div class="pblock">
+          <h4 class="green">Final Release Gate</h4>
+          <ul class="check-list">
+            <li>Fresh install → new game → 10 turns without crash</li>
+            <li>Save → close app → reopen → state fully restored</li>
+            <li>All 10 interruptor types trigger at least once in a 20-turn session</li>
+            <li>Combat resolves correctly for all 9 mission types</li>
+            <li>AI corps grow and compete visibly over 30 turns</li>
+            <li>Release APK passes Play Store pre-launch review checklist</li>
+            <li>App size reasonable for a UI/text-based strategy game (&lt;50MB)</li>
+          </ul>
+        </div>
+        <div class="pblock">
+          <h4 class="red">Watch Out For</h4>
+          <ul>
+            <li>Notification scheduling requires background capability — test on real hardware, not just the emulator, before shipping.</li>
+            <li>Save slot management is brand new with no web equivalent — spec it carefully in CONTEXT.md before asking the LLM to implement it.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /phases -->
+
+  <!-- TIMELINE -->
+  <div class="sec">
+    <div class="sec-hdr">
+      <span class="tag">TIMELINE</span>
+      <h2>Full Phase Timeline — LLM-Assisted</h2>
+    </div>
+    <p style="margin-bottom:20px;font-size:0.875rem;color:var(--muted);">LLM-assisted development is 2–4× faster than writing from scratch, but you still need to review, test, and direct every output. Estimates assume hands-on oversight: reviewing LLM output, running gate checklists, and testing before moving forward.</p>
+    <div class="tl">
+      <div class="tl-row">
+        <div class="tl-n">0</div>
+        <div class="tl-name">Setup &amp; CONTEXT.md</div>
+        <div class="tl-bar-bg"><div class="tl-bar-fill" style="width:4%;background:var(--muted);"></div></div>
+        <div class="tl-est">2–3 days</div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-n">1</div>
+        <div class="tl-name">Database Schema &amp; Seeds</div>
+        <div class="tl-bar-bg"><div class="tl-bar-fill" style="width:12%;background:#4a6fa5;"></div></div>
+        <div class="tl-est">1.5–2 weeks</div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-n">2</div>
+        <div class="tl-name">Corp Init &amp; Turn Engine</div>
+        <div class="tl-bar-bg"><div class="tl-bar-fill" style="width:6%;background:var(--cyan);"></div></div>
+        <div class="tl-est">3–5 days</div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-n">3</div>
+        <div class="tl-name">Market, Economy &amp; Ledger</div>
+        <div class="tl-bar-bg"><div class="tl-bar-fill" style="width:10%;background:var(--cyan);"></div></div>
+        <div class="tl-est">1–1.5 weeks</div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-n">4</div>
+        <div class="tl-name">Station: Scan, Mine, Research</div>
+        <div class="tl-bar-bg"><div class="tl-bar-fill" style="width:13%;background:var(--green);"></div></div>
+        <div class="tl-est">1.5–2 weeks</div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-n">5</div>
+        <div class="tl-name">Fleet, Ships, Modules, Crew</div>
+        <div class="tl-bar-bg"><div class="tl-bar-fill" style="width:25%;background:var(--amber);"></div></div>
+        <div class="tl-est">3–4 weeks</div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-n">6</div>
+        <div class="tl-name">Missions, Runner &amp; Interruptors</div>
+        <div class="tl-bar-bg"><div class="tl-bar-fill" style="width:22%;background:var(--orange);"></div></div>
+        <div class="tl-est">2.5–4 weeks</div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-n">7</div>
+        <div class="tl-name">Combat Engine Logic (Dart)</div>
+        <div class="tl-bar-bg"><div class="tl-bar-fill" style="width:18%;background:var(--red);"></div></div>
+        <div class="tl-est">2–3 weeks</div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-n">8</div>
+        <div class="tl-name">Combat Screen &amp; Animation</div>
+        <div class="tl-bar-bg"><div class="tl-bar-fill" style="width:18%;background:var(--red);"></div></div>
+        <div class="tl-est">2–3 weeks</div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-n">9</div>
+        <div class="tl-name">AI Corporations</div>
+        <div class="tl-bar-bg"><div class="tl-bar-fill" style="width:15%;background:var(--purple);"></div></div>
+        <div class="tl-est">2–3 weeks</div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-n">10</div>
+        <div class="tl-name">Polish, Codex &amp; Release</div>
+        <div class="tl-bar-bg"><div class="tl-bar-fill" style="width:20%;background:var(--muted);"></div></div>
+        <div class="tl-est">3–4 weeks</div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.2);border-radius:8px;padding:22px 26px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;">
+        <div>
+          <div style="font-family:'Courier New',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Total Range</div>
+          <div style="font-size:1.6rem;font-weight:700;color:var(--cyan);">20–32 weeks</div>
+          <div style="font-size:0.82rem;color:var(--muted);">~5–8 months, LLM-assisted</div>
+        </div>
+        <div>
+          <div style="font-family:'Courier New',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">vs. Hand-Coded</div>
+          <div style="font-size:1.6rem;font-weight:700;color:var(--amber);">~40–55% faster</div>
+          <div style="font-size:0.82rem;color:var(--muted);">LLM handles boilerplate, schema gen, widget scaffolding, data seeding</div>
+        </div>
+        <div>
+          <div style="font-family:'Courier New',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Your Role</div>
+          <div style="font-size:1rem;font-weight:600;color:#fff;">Director + QA</div>
+          <div style="font-size:0.82rem;color:var(--muted);">Prompt engineering, reviewing output, running gate checklists, testing</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <p>harVesta → Flutter LLM Port Playbook // August 2026</p>
+  <p>PHP 8.4 / MariaDB → Dart 3 / Flutter / Drift / Riverpod</p>
+</footer>
+
+</body>
+</html>
